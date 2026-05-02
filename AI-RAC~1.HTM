@@ -169,6 +169,27 @@
   .sblock p { font-size: 14px; color: #aaa; line-height: 1.8; max-width: 860px; }
   .sblock p + p { margin-top: 10px; }
 
+  /* insights — 3 columns on wide screens */
+  .insights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 4px;
+  }
+  .insights-grid p {
+    max-width: none;
+    margin-top: 0 !important;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  @media (max-width: 900px) {
+    .insights-grid { grid-template-columns: 1fr; gap: 12px; }
+    .insights-grid p { background: none; border: none; padding: 0; border-radius: 0; }
+    .insights-grid p + p { margin-top: 10px !important; }
+  }
+
   /* player cards — 6 across on wide, 3 on medium, 2 on small */
   .player-grid {
     display: grid;
@@ -359,9 +380,11 @@
   <!-- WHAT IT MEANS -->
   <div class="sblock">
     <h3><span class="dot"></span>What This Means for You</h3>
-    <p><strong>For finance and business professionals:</strong> The AI tool you use today may not be the best tool for your job in 12 months. ChatGPT is still dominant, but Gemini is deeply integrated into the Google Workspace tools most finance teams already use. Claude is earning a strong reputation in enterprise environments for accuracy and nuance — both critical in finance. Perplexity is becoming the default research tool for professionals who need cited, verifiable answers.</p>
-    <p><strong>The real insight:</strong> This is not a winner-takes-all market like search was. Just as professionals today use different tools for different tasks (Excel for modelling, Power BI for reporting, Outlook for communication), we are moving toward a world where different AI tools serve different professional needs. The skill is learning <em>which</em> AI to use for <em>which</em> task — not just knowing one tool exists.</p>
-    <p><strong>For your career:</strong> The professionals who will thrive in the next 5 years are not just those who know AI exists. They are the ones who understand the landscape, experiment with multiple tools, and can guide their teams and organisations in using them effectively. That expertise is rare — and valuable.</p>
+    <div class="insights-grid">
+      <p><strong>For finance and business professionals:</strong> The AI tool you use today may not be the best tool for your job in 12 months. ChatGPT is still dominant, but Gemini is deeply integrated into the Google Workspace tools most finance teams already use. Claude is earning a strong reputation in enterprise environments for accuracy and nuance — both critical in finance. Perplexity is becoming the default research tool for professionals who need cited, verifiable answers.</p>
+      <p><strong>The real insight:</strong> This is not a winner-takes-all market like search was. Just as professionals today use different tools for different tasks (Excel for modelling, Power BI for reporting, Outlook for communication), we are moving toward a world where different AI tools serve different professional needs. The skill is learning <em>which</em> AI to use for <em>which</em> task — not just knowing one tool exists.</p>
+      <p><strong>For your career:</strong> The professionals who will thrive in the next 5 years are not just those who know AI exists. They are the ones who understand the landscape, experiment with multiple tools, and can guide their teams and organisations in using them effectively. That expertise is rare — and valuable.</p>
+    </div>
   </div>
 
   <!-- DATA SOURCES -->
