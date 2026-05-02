@@ -624,4 +624,94 @@ function render(t) {
   top.forEach(([site,val],idx)=>{
     const el=rowEls[site]; if(!el)return;
     el.row.style.top=(12+idx*TOTAL_ROW)+'px';
-    el.row.styl
+    el.row.style.opacity='1';
+    el.rank.textContent=idx+1;
+    el.fill.style.width=Math.round((val/maxVal)*availW)+'px';
+    el.num.textContent=fmtN(val);
+  });
+  for (const site of allSites) {
+    if(!topSet.has(site)){
+      const el=rowEls[site];
+      if(el.row.style.opacity!=='0'){
+        el.row.style.opacity='0';
+        el.row.style.top=`-${ROW_H+30}px`;
+      }
+    }
+  }
+  checkMilestone(t);
+}
+
+// ── ANIMATION ──────────────────────────────────────────────────────────────
+let animT=T_START, playing=true, lastTs=null, speedFactor=0.006;
+
+function setSpeed(mode){
+  const map={slow:0.006,normal:0.018,fast:0.06,turbo:0.18};
+  speedFactor=map[mode]||0.006;
+  const labels={slow:'🐢 Slow',normal:'▶ Normal',fast:'⚡ Fast',turbo:'🚀 Turbo'};
+  document.getElementById('speed-lbl').textContent='Speed: '+labels[mode];
+  ['s1','s2','s3','s4'].forEach(id=>document.getElementById('btn-'+id).classList.remove('active'));
+  const ids={slow:'s1',normal:'s2',fast:'s3',turbo:'s4'};
+  document.getElementById('btn-'+ids[mode]).classList.add('active');
+}
+
+function loop(ts){
+  if(lastTs!==null && playing){
+    const dt=Math.min(ts-lastTs,100);
+    animT+=dt*speedFactor;
+    if(animT>=T_END){
+      animT=T_END; playing=false;
+      document.getElementById('btn-play').textContent='↺ Replay';
+    }
+  }
+  lastTs=ts;
+  render(animT);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+document.getElementById('btn-play').onclick=function(){
+  if(animT>=T_END) animT=T_START;
+  playing=!playing; lastTs=null;
+  this.textContent=playing?'⏸ Pause':'▶ Play';
+};
+document.getElementById('btn-s1').onclick=()=>setSpeed('slow');
+document.getElementById('btn-s2').onclick=()=>setSpeed('normal');
+document.getElementById('btn-s3').onclick=()=>setSpeed('fast');
+document.getElementById('btn-s4').onclick=()=>setSpeed('turbo');
+document.getElementById('btn-restart').onclick=()=>{
+  animT=T_START; playing=true; lastTs=null;
+  document.getElementById('btn-play').textContent='⏸ Pause';
+};
+
+// ── MARKET SHARE BARS ──────────────────────────────────────────────────────
+// Jan 2026 vs Jan 2025 share data (verified SimilarWeb)
+const shareData = [
+  { name:'ChatGPT',   share26:64.6, share25:86.6, color:'#10A37F' },
+  { name:'Gemini',    share26:22.0, share25:5.7,  color:'#4285F4' },
+  { name:'Grok',      share26:3.5,  share25:0.5,  color:'#c0c0c0' },
+  { name:'DeepSeek',  share26:3.3,  share25:0,    color:'#f97316' },
+  { name:'Claude',    share26:2.1,  share25:0.8,  color:'#a78bfa' },
+  { name:'Perplexity',share26:1.9,  share25:1.4,  color:'#20B2AA' },
+  { name:'Copilot',   share26:1.1,  share25:1.5,  color:'#0078d4' },
+];
+
+const container=document.getElementById('share-bars-container');
+shareData.forEach(sd=>{
+  const row=document.createElement('div'); row.className='share-row';
+  const nm=document.createElement('div'); nm.className='share-name'; nm.textContent=sd.name;
+  const tr=document.createElement('div'); tr.className='share-track';
+  const fl=document.createElement('div'); fl.className='share-fill';
+  fl.style.background=`linear-gradient(90deg,${sd.color}99,${sd.color})`;
+  fl.style.width='0%';
+  const lbl=document.createElement('span');
+  lbl.textContent=`${sd.share26}%  (was ${sd.share25}% Jan 2025)`;
+  fl.appendChild(lbl);
+  const pct=document.createElement('div'); pct.className='share-pct';
+  pct.textContent=sd.share26+'%';
+  tr.appendChild(fl); row.append(nm,tr,pct); container.appendChild(row);
+  // animate in after page load
+  setTimeout(()=>{ fl.style.width=sd.share26+'%'; }, 600);
+});
+</script>
+</body>
+</html>
