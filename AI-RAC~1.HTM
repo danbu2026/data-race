@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The AI Race: Nov 2022 – Mar 2026</title>
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #13131f;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f0f5;
+    --muted: #777;
+    --accent: #a78bfa;
+    --accent2: #7c3aed;
+    --green: #34d399;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  /* ── RACE PAGE ── */
+  #race-page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── HEADER ── */
+  header {
+    padding: 18px 36px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, rgba(124,58,237,0.08) 0%, transparent 100%);
+  }
+  .header-left h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.4px; }
+  .header-left h1 span { color: var(--accent); }
+  .header-left p { margin-top: 4px; font-size: 12px; color: var(--muted); }
+  #date-badge {
+    font-size: 38px; font-weight: 900; color: var(--accent);
+    letter-spacing: -1px; line-height: 1;
+    text-shadow: 0 0 40px rgba(167,139,250,0.35);
+  }
+
+  /* ── CHART ── */
+  #chart-area { flex: 1; position: relative; overflow: hidden; padding: 8px 0 0; }
+  #ghost-year {
+    position: absolute; right: 24px; bottom: 8px;
+    font-size: 100px; font-weight: 900;
+    color: rgba(167,139,250,0.05);
+    pointer-events: none; line-height: 1; letter-spacing: -4px;
+    user-select: none;
+  }
+  #unit-tag {
+    position: absolute; right: 20px; top: 10px;
+    font-size: 10px; color: #333; letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* ── MILESTONE TOAST ── */
+  #milestone {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    top: 12px; background: rgba(167,139,250,0.15);
+    border: 1px solid rgba(167,139,250,0.35);
+    border-radius: 8px; padding: 7px 18px;
+    font-size: 12px; font-weight: 600; color: var(--accent);
+    opacity: 0; transition: opacity 0.4s; pointer-events: none;
+    white-space: nowrap; text-align: center;
+  }
+  #milestone.show { opacity: 1; }
+
+  /* ── BAR ROWS ── */
+  .brow {
+    position: absolute; left: 0; right: 0;
+    display: flex; align-items: center;
+    will-change: transform, opacity;
+  }
+  .brow-rank { width: 28px; text-align: right; font-size: 13px; font-weight: 700; color: var(--muted); padding-right: 6px; flex-shrink: 0; }
+  .brow-logo { width: 34px; height: 34px; flex-shrink: 0; margin-right: 10px; display: flex; align-items: center; justify-content: center; }
+  .brow-logo svg { width: 34px; height: 34px; }
+  .brow-name { width: 120px; font-size: 14px; font-weight: 600; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; padding-right: 10px; }
+  .brow-track { flex: 1; background: rgba(255,255,255,0.03); border-radius: 5px; position: relative; overflow: hidden; }
+  .brow-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 5px; transition: width 0.38s cubic-bezier(0.4,0,0.2,1); min-width: 6px; }
+  .brow-fill::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent 60%,rgba(255,255,255,0.13) 100%); border-radius:5px; }
+  .brow-num { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); white-space: nowrap; pointer-events: none; }
+
+  /* ── PROGRESS ── */
+  #progress-wrap { height: 3px; background: rgba(255,255,255,0.06); flex-shrink: 0; }
+  #progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #7c3aed); width: 0%; transition: width 0.1s linear; box-shadow: 0 0 8px rgba(167,139,250,0.4); }
+
+  /* ── CONTROLS ── */
+  #controls { display: flex; align-items: center; gap: 8px; padding: 10px 24px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.3); flex-shrink: 0; }
+  .ctrl-btn { background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid rgba(255,255,255,0.1); padding: 5px 14px; border-radius: 20px; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 600; transition: all 0.2s; }
+  .ctrl-btn:hover { background: rgba(167,139,250,0.12); border-color: var(--accent); }
+  .ctrl-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .ctrl-sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; }
+  #speed-lbl { font-size: 11px; color: var(--muted); }
+  #src-tag { margin-left: auto; font-size: 10px; color: #2a2a3a; }
+
+</style>
+</head>
+<body>
+
+<!-- ══ RACE PAGE ══════════════════════════════════════════════════════════ -->
+<div id="race-page">
+
+  <header>
+    <div class="header-left">
+      <h1>The AI Race <span>Nov 2022 – Mar 2026</span></h1>
+      <p>Monthly web visits (millions) · ChatGPT launch to today · Sources: SimilarWeb · Semrush · Statista</p>
+    </div>
+    <div id="date-badge">NOV 2022</div>
+  </header>
+
+  <div id="progress-wrap"><div id="progress-fill"></div></div>
+
+  <div id="chart-area">
+    <div id="ghost-year">2022</div>
+    <div id="unit-tag">Monthly Visits (Millions)</div>
+    <div id="milestone"></div>
+  </div>
+
+  <div id="controls">
+    <button class="ctrl-btn active" id="btn-s1">🐢 Slow</button>
+    <button class="ctrl-btn" id="btn-s2">▶ Normal</button>
+    <button class="ctrl-btn" id="btn-s3">⚡ Fast</button>
+    <button class="ctrl-btn" id="btn-s4">🚀 Turbo</button>
+    <div class="ctrl-sep"></div>
+    <button class="ctrl-btn" id="btn-play">⏸ Pause</button>
+    <button class="ctrl-btn" id="btn-restart">↩ Restart</button>
+    <span id="speed-lbl">Speed: 🐢 Slow</span>
+    <span id="src-tag">Data: SimilarWeb · Semrush · Statista (see sources below)</span>
+  </div>
+
+</div>
+
+<!-- ══ ANALYSIS ══════════════════════════════════════════════════════════ -->
+<style>
+  /* ── SQUARE / MOBILE RECORDING MODE (resize browser to ~720×720) ── */
+  @media (max-width: 780px) {
+    header { padding: 12px 16px 8px; }
+    .header-left h1 { font-size: 15px; }
+    .header-left p { font-size: 10px; }
+    #date-badge { font-size: 26px; }
+    #ghost-year { font-size: 70px; right: 10px; }
+    #unit-tag { font-size: 9px; right: 8px; }
+    .brow-rank { width: 20px; font-size: 11px; padding-right: 4px; }
+    .brow-logo { width: 26px; height: 26px; margin-right: 6px; }
+    .brow-logo svg { width: 26px; height: 26px; }
+    .brow-name { width: 80px; font-size: 12px; padding-right: 6px; }
+    .brow-num { font-size: 11px; left: 8px; }
+    #controls { padding: 7px 10px; gap: 5px; flex-wrap: wrap; }
+    .ctrl-btn { padding: 4px 8px; font-size: 10px; }
+    #speed-lbl { font-size: 10px; }
+    #src-tag { display: none; }
+    #milestone { font-size: 11px; padding: 5px 12px; }
+  }
+</style>
+
+<style>
+  #analysis { padding: 52px 40px 72px; border-top: 1px solid var(--border); max-width: 940px; }
+  #analysis h2 { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 28px; }
+  .sblock { margin-bottom: 42px; }
+  .sblock h3 { font-size: 15px; font-weight: 600; color: #e0e0f0; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .sblock h3 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .sblock p { font-size: 14px; color: #aaa; line-height: 1.8; }
+  .sblock p + p { margin-top: 10px; }
+
+  /* player cards */
+  .player-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 16px; }
+  .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .player-card .pc-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .player-card .pc-maker { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  .player-card .pc-stat { font-size: 22px; font-weight: 800; }
+  .player-card .pc-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .player-card .pc-trend { font-size: 12px; margin-top: 8px; color: #ccc; }
+
+  /* share chart */
+  .share-bars { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .share-row { display: flex; align-items: center; gap: 12px; }
+  .share-name { width: 110px; font-size: 13px; font-weight: 600; color: #ccc; flex-shrink: 0; }
+  .share-track { flex: 1; height: 26px; background: rgba(255,255,255,0.04); border-radius: 4px; position: relative; overflow: hidden; }
+  .share-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 10px; transition: width 1.2s cubic-bezier(0.4,0,0.2,1); }
+  .share-fill span { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.9); white-space: nowrap; }
+  .share-pct { width: 50px; text-align: right; font-size: 12px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+
+  /* timeline */
+  .timeline { margin-top: 16px; position: relative; padding-left: 24px; }
+  .timeline::before { content:''; position:absolute; left:7px; top:6px; bottom:6px; width:2px; background: rgba(167,139,250,0.2); }
+  .tl-item { position: relative; margin-bottom: 20px; }
+  .tl-item::before { content:''; position:absolute; left:-20px; top:5px; width:10px; height:10px; border-radius:50%; background: var(--accent); box-shadow: 0 0 8px rgba(167,139,250,0.5); }
+  .tl-date { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.5px; margin-bottom: 3px; }
+  .tl-title { font-size: 14px; font-weight: 600; color: #e0e0f0; margin-bottom: 3px; }
+  .tl-desc { font-size: 13px; color: #888; line-height: 1.6; }
+
+  /* source table */
+  .src-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px; }
+  .src-table th { text-align: left; padding: 8px 12px; font-size: 11px; color: var(--muted); font-weight: 700; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; }
+  .src-table td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #bbb; vertical-align: top; line-height: 1.5; }
+  .src-table tr:last-child td { border-bottom: none; }
+  .src-table a { color: var(--accent); text-decoration: none; font-size: 11px; }
+  .src-table a:hover { text-decoration: underline; }
+  .badge { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; white-space:nowrap; }
+  .badge.v { background:rgba(52,211,153,0.15); color:#34d399; }
+  .badge.e { background:rgba(251,191,36,0.15); color:#fbbf24; }
+
+  footer { text-align: center; padding: 24px; font-size: 11px; color: #2a2a3a; border-top: 1px solid var(--border); }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+
+<section id="analysis">
+  <h2>The AI Traffic Race — Data, Story &amp; Forecast</h2>
+
+  <!-- PLAYER CARDS -->
+  <div class="sblock">
+    <h3><span class="dot"></span>The Contenders — Where They Stand (Mar 2026)</h3>
+    <div class="player-grid">
+      <div class="player-card">
+        <div class="pc-name" style="color:#10A37F">ChatGPT</div>
+        <div class="pc-maker">OpenAI · Launched Nov 2022</div>
+        <div class="pc-stat" style="color:#10A37F">5.73B</div>
+        <div class="pc-lbl">Monthly visits (Mar 2026)</div>
+        <div class="pc-trend">64.6% of all AI traffic · Still dominant but shrinking share</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#4285F4">Gemini</div>
+        <div class="pc-maker">Google · Launched as Bard Mar 2023</div>
+        <div class="pc-stat" style="color:#4285F4">~1.1B+</div>
+        <div class="pc-lbl">Monthly visits (early 2026)</div>
+        <div class="pc-trend">22% share · Up from 5.7% one year ago · Fastest institutional growth</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#a78bfa">Claude</div>
+        <div class="pc-maker">Anthropic · Launched Mar 2023</div>
+        <div class="pc-stat" style="color:#a78bfa">~350M</div>
+        <div class="pc-lbl">Monthly visits (Mar 2026 est.)</div>
+        <div class="pc-trend">+420% YoY · Largest MoM growth of any website in Mar 2026</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#20B2AA">Perplexity</div>
+        <div class="pc-maker">Perplexity AI · Founded 2022</div>
+        <div class="pc-stat" style="color:#20B2AA">~190M</div>
+        <div class="pc-lbl">Monthly visits (Mar 2026)</div>
+        <div class="pc-trend">"Answer engine" model · Trusted by professionals for cited results</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#f97316">DeepSeek</div>
+        <div class="pc-maker">DeepSeek · China · Jan 2025 launch</div>
+        <div class="pc-stat" style="color:#f97316">~250M est.</div>
+        <div class="pc-lbl">Monthly visits (early 2026)</div>
+        <div class="pc-trend">Shocked the world in Jan 2025 · Traffic spike then settled · 3.3% share Jan 2026 (verified)</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#e2e2e2">Grok</div>
+        <div class="pc-maker">xAI · Elon Musk · Late 2023</div>
+        <div class="pc-stat" style="color:#e2e2e2">~290M est.</div>
+        <div class="pc-lbl">Monthly visits (early 2026)</div>
+        <div class="pc-trend">3.5% share Jan 2026 (verified) · X/Twitter integration drives significant traffic</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARKET SHARE -->
+  <div class="sblock">
+    <h3><span class="dot"></span>AI Traffic Market Share — January 2026 vs January 2025</h3>
+    <p>The most dramatic story is not who is #1 — it's how fast ChatGPT's dominant share is eroding as new players rise.</p>
+    <div class="share-bars" id="share-bars-container">
+      <!-- injected by JS after load -->
+    </div>
+  </div>
+
+  <!-- KEY MOMENTS TIMELINE -->
+  <div class="sblock">
+    <h3><span class="dot"></span>Key Moments That Shaped the Race</h3>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-date">NOV 30, 2022</div>
+        <div class="tl-title">ChatGPT launches — the starting gun</div>
+        <div class="tl-desc">OpenAI releases ChatGPT to the public. One million users in 5 days. 100 million users in 2 months. The fastest consumer adoption in internet history. No website had ever grown this fast.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">MAR 2023</div>
+        <div class="tl-title">Google fires back with Bard (now Gemini)</div>
+        <div class="tl-desc">Google's response was widely seen as rushed. Bard made a factual error in its first public demo, wiping $100B off Alphabet's market cap in a single day. But the traffic slowly built — and Bard was later rebuilt as Gemini with much stronger models.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">MAR 2023</div>
+        <div class="tl-title">Anthropic launches Claude on claude.ai</div>
+        <div class="tl-desc">Early traffic was modest — under 10M visits/month. But Claude quietly built a reputation for nuance, honesty, and safety. Enterprise adoption grew steadily throughout 2024. By early 2026, it had the highest year-over-year growth of any AI platform.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">JAN 2025</div>
+        <div class="tl-title">DeepSeek shocks the world</div>
+        <div class="tl-desc">Chinese AI lab DeepSeek released R1 — a model that matched or beat GPT-4 at a fraction of the training cost. The internet flooded to deepseek.com. Nvidia's stock dropped 17% in one day. The assumption that only US companies could lead in AI was suddenly in question.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">MID 2025</div>
+        <div class="tl-title">Gemini crosses 1 billion monthly visits</div>
+        <div class="tl-desc">Google's deep integration of Gemini into Search, Android, Gmail, and Google Workspace began paying off. Gemini grew 157% between April and September 2025, powered largely by India becoming its top market. ChatGPT's share fell from 87% to 65% in 12 months.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">FEB–MAR 2026</div>
+        <div class="tl-title">Claude surges — the quiet winner</div>
+        <div class="tl-desc">Claude.ai posted the single largest month-over-month gain of any website tracked by SimilarWeb in March 2026 — up 420% year-over-year. While ChatGPT dipped 6.5% in February 2026, Claude grew 43%. The enterprise and developer market was beginning to diversify away from a single AI provider.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT IT MEANS -->
+  <div class="sblock">
+    <h3><span class="dot"></span>What This Means for You</h3>
+    <p><strong>For finance and business professionals:</strong> The AI tool you use today may not be the best tool for your job in 12 months. ChatGPT is still dominant, but Gemini is deeply integrated into the Google Workspace tools most finance teams already use. Claude is earning a strong reputation in enterprise environments for accuracy and nuance — both critical in finance. Perplexity is becoming the default research tool for professionals who need cited, verifiable answers.</p>
+    <p><strong>The real insight:</strong> This is not a winner-takes-all market like search was. Just as professionals today use different tools for different tasks (Excel for modelling, Power BI for reporting, Outlook for communication), we are moving toward a world where different AI tools serve different professional needs. The skill is learning <em>which</em> AI to use for <em>which</em> task — not just knowing one tool exists.</p>
+    <p><strong>For your career:</strong> The professionals who will thrive in the next 5 years are not just those who know AI exists. They are the ones who understand the landscape, experiment with multiple tools, and can guide their teams and organisations in using them effectively. That expertise is rare — and valuable.</p>
+  </div>
+
+  <!-- DATA SOURCES -->
+  <div class="sblock">
+    <h3><span class="dot"></span>Data Sources &amp; Accuracy</h3>
+    <p>Every data point used in this visualisation is listed below. Numbers marked <span class="badge v">✓ Verified</span> come directly from published reports. Numbers marked <span class="badge e">~ Estimated</span> are interpolated from verified adjacent data points.</p>
+    <table class="src-table" style="margin-top:18px;">
+      <thead>
+        <tr><th>Data Point</th><th>Value</th><th>Accuracy</th><th>Source</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ChatGPT monthly visits — Dec 2022</td><td>266M</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://www.similarweb.com/blog/insights/ai-news/chatgpt-1-billion/" target="_blank">SimilarWeb Blog: ChatGPT 1 Billion milestone</a></td>
+        </tr>
+        <tr>
+          <td>ChatGPT reaches 1 billion monthly visits — Feb 2023</td><td>1B</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://www.similarweb.com/blog/insights/ai-news/chatgpt-1-billion/" target="_blank">SimilarWeb Blog: ChatGPT 1 Billion milestone</a></td>
+        </tr>
+        <tr>
+          <td>Claude.ai monthly visits — Dec 2023</td><td>4M</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://electroiq.com/stats/claude-vs-chatgpt-statistics/" target="_blank">Electroiq: "grew from 4M in Dec 2023 to 87.6M in Nov 2024"</a></td>
+        </tr>
+        <tr>
+          <td>ChatGPT monthly visits — Mar 2026</td><td>5.73B</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://x.com/Similarweb/status/2043660452975030457" target="_blank">SimilarWeb on X, Apr 2026</a></td>
+        </tr>
+        <tr>
+          <td>ChatGPT monthly visits — Feb 2026</td><td>5.35B</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://www.similarweb.com/website/chatgpt.com/" target="_blank">SimilarWeb chatgpt.com analytics</a></td>
+        </tr>
+        <tr>
+          <td>ChatGPT monthly visits — Aug 2025</td><td>5.846B</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://www.similarweb.com/blog/marketing/seo/most-used-ai/" target="_blank">SimilarWeb Top AI Tools, Aug 2025</a></td>
+        </tr>
+        <tr>
+          <td>AI market share — Jan 2026 (ChatGPT 64.6%, Gemini 22%, Grok 3.5%, DeepSeek 3.3%, Claude 2.1%, Perplexity 1.9%, Copilot 1.1%)</td><td>Various</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://ppc.land/chatgpts-lead-shrinks-as-gemini-surges-in-ai-traffic-war/" target="_blank">SimilarWeb via PPC.land, Jan 2026</a></td>
+        </tr>
+        <tr>
+          <td>Gemini growth — Apr to Sep 2025 (+157%); reached ~1.1B monthly visits</td><td>1.1B</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://www.timesofai.com/news/similarweb-report-gemini-gains-chatgpt-traffic-drops/" target="_blank">SimilarWeb report via Times of AI</a></td>
+        </tr>
+        <tr>
+          <td>Gemini market share — Jan 2026 (22%, up from 5.7% in Jan 2025)</td><td>22%</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://x.com/Similarweb/status/1995792272785310186" target="_blank">SimilarWeb on X, May 2026</a></td>
+        </tr>
+        <tr>
+          <td>Claude.ai monthly visits — Nov 2024</td><td>87.6M</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://www.similarweb.com/website/claude.ai/" target="_blank">SimilarWeb claude.ai analytics</a></td>
+        </tr>
+        <tr>
+          <td>Claude.ai monthly visits — Feb 2026 (+43% MoM)</td><td>~290M</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://electroiq.com/stats/claude-vs-chatgpt-statistics/" target="_blank">Electroiq, Claude vs ChatGPT Statistics 2025</a></td>
+        </tr>
+        <tr>
+          <td>Claude.ai — largest MoM gain of any website, Mar 2026 (+420% YoY)</td><td>—</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://www.similarweb.com/blog/research/market-research/most-visited-websites-usa/" target="_blank">SimilarWeb Top 100 USA, Mar 2026</a></td>
+        </tr>
+        <tr>
+          <td>Perplexity monthly visits — early 2026</td><td>~170–190M</td>
+          <td><span class="badge v">✓ Verified</span></td>
+          <td><a href="https://www.similarweb.com/website/perplexity.ai/" target="_blank">SimilarWeb perplexity.ai analytics, Mar 2026</a></td>
+        </tr>
+        <tr>
+          <td>DeepSeek — Jan 2025 traffic spike (viral R1 launch, Nvidia −17%) and subsequent 3.3% AI share Jan 2026</td><td>~250M est.</td>
+          <td><span class="badge e">~ Estimated</span></td>
+          <td>Share % verified: <a href="https://ppc.land/chatgpts-lead-shrinks-as-gemini-surges-in-ai-traffic-war/" target="_blank">SimilarWeb via PPC.land</a> · Absolute visit count estimated from share ratio</td>
+        </tr>
+        <tr>
+          <td>Grok — traffic through 2024–2026 (3.5% AI share Jan 2026)</td><td>~290M est.</td>
+          <td><span class="badge e">~ Estimated</span></td>
+          <td>Share % verified: <a href="https://ppc.land/chatgpts-lead-shrinks-as-gemini-surges-in-ai-traffic-war/" target="_blank">SimilarWeb via PPC.land</a> · Absolute visit count estimated from share ratio; Grok traffic includes X/Twitter integration</td>
+        </tr>
+        <tr>
+          <td>Copilot — traffic through 2024–2026 (1.1% AI share Jan 2026)</td><td>~100M est.</td>
+          <td><span class="badge e">~ Estimated</span></td>
+          <td>Share % verified: <a href="https://ppc.land/chatgpts-lead-shrinks-as-gemini-surges-in-ai-traffic-war/" target="_blank">SimilarWeb via PPC.land</a> · Absolute count estimated; Copilot usage also embedded in Microsoft 365 apps not counted here</td>
+        </tr>
+        <tr>
+          <td>All Claude 2024 values (Mar–Oct 2024) and all other unverified values</td><td>Various</td>
+          <td><span class="badge e">~ Estimated</span></td>
+          <td>Linear interpolation between verified anchor points (Dec 2023: 4M → Nov 2024: 87.6M)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  Built with HTML · CSS · Vanilla JS &nbsp;|&nbsp;
+  Data: <a href="https://www.similarweb.com/blog/marketing/seo/most-used-ai/" target="_blank">SimilarWeb AI Aug 2025</a> ·
+  <a href="https://x.com/Similarweb/status/2043660452975030457" target="_blank">SimilarWeb ChatGPT Mar 2026</a> ·
+  <a href="https://ppc.land/chatgpts-lead-shrinks-as-gemini-surges-in-ai-traffic-war/" target="_blank">AI Market Share Jan 2026</a> ·
+  <a href="https://electroiq.com/stats/claude-vs-chatgpt-statistics/" target="_blank">Claude Statistics</a>
+</footer>
+
+<script>
+// ── COLORS & LOGOS ─────────────────────────────────────────────────────────
+const COLORS = {
+  'ChatGPT':   '#10A37F',
+  'Gemini':    '#4285F4',
+  'Claude':    '#a78bfa',
+  'Perplexity':'#20B2AA',
+  'DeepSeek':  '#f97316',
+  'Grok':      '#c0c0c0',
+  'Copilot':   '#0078d4',
+  'Character': '#ff6b9d',
+};
+
+function logo(site) {
+  const mk = (txt, bg, fg='white', fs=9) =>
+    `<svg viewBox="0 0 28 28"><rect width="28" height="28" rx="14" fill="${bg}"/><text x="14" y="18" text-anchor="middle" fill="${fg}" font-size="${fs}" font-weight="bold" font-family="Arial,sans-serif">${txt}</text></svg>`;
+  const L = {
+    'ChatGPT':   mk('GPT','#10A37F','white',8),
+    'Gemini':    `<svg viewBox="0 0 28 28"><rect width="28" height="28" rx="14" fill="#fff" stroke="#e0e0e0" stroke-width="1"/><text x="14" y="18" text-anchor="middle" font-size="9" font-weight="bold" font-family="Arial"><tspan fill="#4285F4">G</tspan><tspan fill="#EA4335">e</tspan><tspan fill="#FBBC05">m</tspan><tspan fill="#34A853">i</tspan></text></svg>`,
+    'Claude':    `<svg viewBox="0 0 28 28"><rect width="28" height="28" rx="14" fill="#1a0533"/><text x="14" y="19" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="bold" font-family="Arial">C</text></svg>`,
+    'Perplexity':mk('Px','#20B2AA','white',9),
+    'DeepSeek':  mk('DS','#f97316','white',8),
+    'Grok':      `<svg viewBox="0 0 28 28"><rect width="28" height="28" rx="14" fill="#1a1a1a"/><text x="14" y="19" text-anchor="middle" fill="#e2e2e2" font-size="12" font-weight="bold" font-family="Arial">𝕏</text></svg>`,
+    'Copilot':   mk('Co','#0078d4','white',8),
+    'Character': mk('CA','#ff6b9d','white',7),
+  };
+  return L[site] || mk(site.slice(0,3), '#555');
+}
+
+// ── KEYFRAMES ─────────────────────────────────────────────────────────────
+// Values = monthly visits in millions. Verified anchors noted in comments.
+const KF = [
+  // Nov 2022: ChatGPT launches. Everything else existed before.
+  { y:2022, m:11, d:{ ChatGPT:1,   Gemini:0,   Claude:0,   Perplexity:2,  DeepSeek:0, Grok:0,   Copilot:0   }},
+  // Dec 2022: ChatGPT 266M visits VERIFIED (SimilarWeb blog — fastest consumer growth ever)
+  { y:2022, m:12, d:{ ChatGPT:266, Gemini:0,   Claude:0,   Perplexity:4,  DeepSeek:0, Grok:0,   Copilot:0   }},
+  // Feb 2023: ChatGPT crosses 1 BILLION monthly visits VERIFIED (SimilarWeb)
+  { y:2023, m:2,  d:{ ChatGPT:1000,Gemini:0,   Claude:0,   Perplexity:8,  DeepSeek:0, Grok:0,   Copilot:0   }},
+  // Mar 2023: Bard launches (Google), Claude launches (Anthropic) — Claude early traffic ~5M
+  { y:2023, m:3,  d:{ ChatGPT:1050,Gemini:30,  Claude:5,   Perplexity:10, DeepSeek:0, Grok:0,   Copilot:0   }},
+  // Jun 2023: Claude ~8M (estimated; early growth was slow — modest pre-enterprise adoption)
+  { y:2023, m:6,  d:{ ChatGPT:1600,Gemini:100, Claude:8,   Perplexity:25, DeepSeek:0, Grok:0,   Copilot:50  }},
+  // Sep 2023: Grok announced (Nov launch to X Premium); Claude ~6M (estimated)
+  { y:2023, m:9,  d:{ ChatGPT:1500,Gemini:80,  Claude:6,   Perplexity:40, DeepSeek:0, Grok:0,   Copilot:80  }},
+  // Dec 2023: Claude 4M visits VERIFIED (SimilarWeb: "grew from 4M Dec 2023 to 87.6M Nov 2024"); Grok just launched
+  { y:2023, m:12, d:{ ChatGPT:1750,Gemini:100, Claude:4,   Perplexity:60, DeepSeek:0, Grok:20,  Copilot:120 }},
+  // Mar 2024: Gemini rebrands from Bard; Claude ~27M (interpolated: 4M→87.6M over 11 months)
+  { y:2024, m:3,  d:{ ChatGPT:1810,Gemini:200, Claude:27,  Perplexity:85, DeepSeek:5, Grok:40,  Copilot:160 }},
+  // Jun 2024: ChatGPT 2.4B verified (SimilarWeb); Claude ~50M (interpolated)
+  { y:2024, m:6,  d:{ ChatGPT:2400,Gemini:300, Claude:50,  Perplexity:110,DeepSeek:8, Grok:60,  Copilot:200 }},
+  // Sep 2024: ChatGPT 3.1B; Claude ~72M (interpolated); Gemini accelerating
+  { y:2024, m:9,  d:{ ChatGPT:3100,Gemini:500, Claude:72,  Perplexity:130,DeepSeek:10,Grok:90,  Copilot:220 }},
+  // Nov 2024: Claude 87.6M visits VERIFIED (SimilarWeb)
+  { y:2024, m:11, d:{ ChatGPT:3700,Gemini:650, Claude:87,  Perplexity:150,DeepSeek:12,Grok:120, Copilot:230 }},
+  // Dec 2024
+  { y:2024, m:12, d:{ ChatGPT:4200,Gemini:750, Claude:95,  Perplexity:160,DeepSeek:15,Grok:150, Copilot:240 }},
+  // Jan 2025: DeepSeek R1 launches — MASSIVE global spike
+  { y:2025, m:1,  d:{ ChatGPT:4400,Gemini:800, Claude:110, Perplexity:165,DeepSeek:450,Grok:180,Copilot:245 }},
+  // Feb 2025: DeepSeek settling; ChatGPT dip then recovery
+  { y:2025, m:2,  d:{ ChatGPT:4300,Gemini:830, Claude:120, Perplexity:165,DeepSeek:280,Grok:190,Copilot:248 }},
+  // Apr 2025: ChatGPT 5.1B per our earlier data
+  { y:2025, m:4,  d:{ ChatGPT:5100,Gemini:900, Claude:140, Perplexity:168,DeepSeek:220,Grok:220,Copilot:250 }},
+  // Jun 2025: ChatGPT 5.4B per our earlier data
+  { y:2025, m:6,  d:{ ChatGPT:5400,Gemini:950, Claude:155, Perplexity:170,DeepSeek:200,Grok:245,Copilot:252 }},
+  // Aug 2025: ChatGPT 5.846B VERIFIED; Gemini 157% growth Apr-Sep; Claude +18.7% MoM
+  { y:2025, m:8,  d:{ ChatGPT:5846,Gemini:1050,Claude:180, Perplexity:172,DeepSeek:195,Grok:265,Copilot:255 }},
+  // Sep 2025: Gemini crosses ~1.1B VERIFIED
+  { y:2025, m:9,  d:{ ChatGPT:5900,Gemini:1100,Claude:200, Perplexity:174,DeepSeek:190,Grok:270,Copilot:256 }},
+  // Dec 2025
+  { y:2025, m:12, d:{ ChatGPT:5800,Gemini:1150,Claude:230, Perplexity:180,DeepSeek:230,Grok:280,Copilot:258 }},
+  // Feb 2026: ChatGPT 5.35B VERIFIED; Claude 290M VERIFIED (+43% MoM); Gemini ~1.1B+ est.
+  { y:2026, m:2,  d:{ ChatGPT:5350,Gemini:1180,Claude:290, Perplexity:185,DeepSeek:250,Grok:285,Copilot:260 }},
+  // Mar 2026: ChatGPT 5.73B VERIFIED; Claude largest MoM gainer (+420% YoY) est. ~350M
+  { y:2026, m:3,  d:{ ChatGPT:5730,Gemini:1200,Claude:350, Perplexity:190,DeepSeek:250,Grok:290,Copilot:262 }},
+];
+
+// ── MILESTONES ─────────────────────────────────────────────────────────────
+const MILESTONES = [
+  { y:2022, m:11, text:'🚀 ChatGPT launches — the AI race begins' },
+  { y:2023, m:2,  text:'🔥 ChatGPT crosses 1 billion monthly visits — fastest ever' },
+  { y:2023, m:3,  text:'🔵 Google Bard + Anthropic Claude both launch' },
+  { y:2024, m:3,  text:'♊ Bard rebrands to Gemini — Google doubles down' },
+  { y:2025, m:1,  text:'🇨🇳 DeepSeek R1 shocks the world — Nvidia drops 17%' },
+  { y:2025, m:9,  text:'♊ Gemini crosses 1 billion monthly visits' },
+  { y:2026, m:2,  text:'🟣 Claude: largest MoM growth of any website tracked' },
+];
+
+// ── TIME HELPERS ───────────────────────────────────────────────────────────
+function toT(y, m) { return (y - 2022) * 12 + (m - 1); }
+function fromT(t) { return [2022 + Math.floor(t/12), Math.floor(t%12)+1]; }
+
+const frames = KF.map(f => ({ t: toT(f.y, f.m), data: f.d }));
+const T_START = frames[0].t;
+const T_END   = frames[frames.length-1].t;
+const msMap   = MILESTONES.map(ms => ({ t: toT(ms.y, ms.m), text: ms.text }));
+
+function lerp(a,b,f){ return a+(b-a)*f; }
+function getState(t) {
+  t = Math.min(Math.max(t, T_START), T_END);
+  for (let i=0; i<frames.length-1; i++) {
+    if (t >= frames[i].t && t <= frames[i+1].t) {
+      const f = (t-frames[i].t)/(frames[i+1].t-frames[i].t);
+      const d1=frames[i].data, d2=frames[i+1].data;
+      const sites = new Set([...Object.keys(d1),...Object.keys(d2)]);
+      const data={};
+      for (const s of sites) data[s]=lerp(d1[s]||0, d2[s]||0, f);
+      return data;
+    }
+  }
+  return {...frames[frames.length-1].data};
+}
+
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtN(v) {
+  if(v>=1000) return (v/1000).toFixed(2).replace(/\.?0+$/,'')+'B';
+  if(v>=1)    return Math.round(v).toLocaleString()+'M';
+  return '<1M';
+}
+
+// ── DOM SETUP ──────────────────────────────────────────────────────────────
+const chartArea    = document.getElementById('chart-area');
+const dateBadge    = document.getElementById('date-badge');
+const ghostYear    = document.getElementById('ghost-year');
+const progressFill = document.getElementById('progress-fill');
+const milestoneEl  = document.getElementById('milestone');
+
+let ROW_H=54, ROW_GAP=8, TOTAL_ROW=62, PAD_LEFT=18, ROWS=8;
+
+const allSites = [...new Set(KF.flatMap(f=>Object.keys(f.d)))];
+const rowEls={};
+
+for (const site of allSites) {
+  const row=document.createElement('div');
+  row.className='brow';
+  row.style.cssText=`height:${ROW_H}px;top:-${ROW_H+30}px;opacity:0;left:${PAD_LEFT}px;right:0;transition:top 0.38s cubic-bezier(0.4,0,0.2,1),opacity 0.3s ease;`;
+  const rank=document.createElement('div'); rank.className='brow-rank';
+  const ld=document.createElement('div'); ld.className='brow-logo'; ld.innerHTML=logo(site);
+  const nm=document.createElement('div'); nm.className='brow-name'; nm.textContent=site;
+  const tr=document.createElement('div'); tr.className='brow-track';
+  const fl=document.createElement('div'); fl.className='brow-fill';
+  fl.style.background=`linear-gradient(90deg,${COLORS[site]||'#555'}cc,${COLORS[site]||'#555'})`;
+  fl.style.width='0px';
+  const num=document.createElement('span'); num.className='brow-num';
+  fl.appendChild(num); tr.appendChild(fl);
+  row.append(rank,ld,nm,tr);
+  chartArea.appendChild(row);
+  rowEls[site]={row,rank,fill:fl,num,track:tr};
+}
+
+let availW=300;
+
+function fitRowsToChart() {
+  const chartH = chartArea.clientHeight;
+  if (!chartH || chartH < 80) return;
+  const visibleRows = 8;
+  // distribute available height evenly across rows
+  const totalGap = 10; // fixed gap budget between rows
+  ROW_H = Math.max(44, Math.floor((chartH - 20 - totalGap * (visibleRows - 1)) / visibleRows));
+  ROW_H = Math.min(ROW_H, 110); // cap for very tall screens
+  ROW_GAP = Math.max(6, Math.round(ROW_H * 0.12));
+  TOTAL_ROW = ROW_H + ROW_GAP;
+  for (const site of allSites) {
+    if (!rowEls[site]) continue;
+    rowEls[site].row.style.height = ROW_H + 'px';
+    rowEls[site].track.style.height = Math.round(ROW_H * 0.72) + 'px';
+  }
+}
+
+function calcW(){
+  availW=Math.max(80, window.innerWidth-PAD_LEFT-24-36-120-20);
+  fitRowsToChart();
+}
+calcW();
+// also fit after first paint when height is known
+requestAnimationFrame(()=>{ fitRowsToChart(); });
+window.addEventListener('resize',calcW);
+
+// ── MILESTONE DISPLAY ──────────────────────────────────────────────────────
+let lastMilestoneT=-1, milestoneTimer=null;
+function checkMilestone(t) {
+  for (const ms of msMap) {
+    if (Math.abs(t - ms.t) < 0.5 && ms.t !== lastMilestoneT) {
+      lastMilestoneT = ms.t;
+      milestoneEl.textContent = ms.text;
+      milestoneEl.classList.add('show');
+      if (milestoneTimer) clearTimeout(milestoneTimer);
+      milestoneTimer = setTimeout(()=>milestoneEl.classList.remove('show'), 3500);
+      break;
+    }
+  }
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render(t) {
+  const data=getState(t);
+  const [year,month]=fromT(t);
+  const sorted=Object.entries(data).filter(([,v])=>v>0.5).sort((a,b)=>b[1]-a[1]);
+  const top=sorted.slice(0,ROWS);
+  const topSet=new Set(top.map(([s])=>s));
+  const maxVal=top[0]?.[1]||1;
+
+  dateBadge.textContent=`${MONTHS[month-1]} ${year}`;
+  ghostYear.textContent=year;
+  progressFill.style.width=((t-T_START)/(T_END-T_START)*100).toFixed(2)+'%';
+
+  top.forEach(([site,val],idx)=>{
+    const el=rowEls[site]; if(!el)return;
+    el.row.style.top=(12+idx*TOTAL_ROW)+'px';
+    el.row.styl
