@@ -660,4 +660,189 @@ function getState(t) {
     if (t >= frames[i].t && t <= frames[i+1].t) {
       const f = (t - frames[i].t) / (frames[i+1].t - frames[i].t);
       const d1 = frames[i].data, d2 = frames[i+1].data;
-      const si
+      const sites = new Set([...Object.keys(d1), ...Object.keys(d2)]);
+      const data = {};
+      for (const s of sites) data[s] = lerp(d1[s] || 0, d2[s] || 0, f);
+      return data;
+    }
+  }
+  return { ...frames[frames.length-1].data };
+}
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function formatN(v) {
+  if (v >= 1000) return (v / 1000).toFixed(1).replace(/\.0$/, '') + 'B';
+  if (v >= 1)    return Math.round(v).toLocaleString() + 'M';
+  return '<1M';
+}
+
+// ── DOM SETUP ──────────────────────────────────────────────────────────────
+const chartArea   = document.getElementById('chart-area');
+const dateBadge   = document.getElementById('date-badge');
+const ghostYear   = document.getElementById('ghost-year');
+const progressFill = document.getElementById('progress-fill');
+
+const ROWS_VISIBLE = 10;
+let ROW_H  = 50;
+let ROW_GAP = 7;
+let TOTAL_ROW = ROW_H + ROW_GAP;
+const PAD_LEFT = 20;
+
+// Pre-create rows for all sites
+const allSites = [...new Set(KF.flatMap(([,,d]) => Object.keys(d)))];
+const rowEls = {};
+
+for (const site of allSites) {
+  const row = document.createElement('div');
+  row.className = 'brow';
+  row.style.cssText = `height:${ROW_H}px; top:-${ROW_H+30}px; opacity:0; left:${PAD_LEFT}px; right:0; transition: top 0.38s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;`;
+
+  const rank = document.createElement('div');
+  rank.className = 'brow-rank';
+
+  const logodiv = document.createElement('div');
+  logodiv.className = 'brow-logo';
+  logodiv.innerHTML = logo(site);
+
+  const name = document.createElement('div');
+  name.className = 'brow-name';
+  name.textContent = site;
+
+  const track = document.createElement('div');
+  track.className = 'brow-track';
+
+  const fill = document.createElement('div');
+  fill.className = 'brow-fill';
+  fill.style.background = `linear-gradient(90deg, ${C[site]||'#555'}cc, ${C[site]||'#555'})`;
+  fill.style.width = '0px';
+
+  const num = document.createElement('span');
+  num.className = 'brow-num';
+  fill.appendChild(num);
+  track.appendChild(fill);
+
+  row.append(rank, logodiv, name, track);
+  chartArea.appendChild(row);
+  rowEls[site] = { row, rank, fill, num, track };
+}
+
+// ── DYNAMIC ROW SIZING ─────────────────────────────────────────────────────
+let lastVisibleCount = 0;
+function fitRowsToChart(count) {
+  const chartH = chartArea.clientHeight;
+  if (!chartH || chartH < 80) return;
+  const n = Math.max(count || lastVisibleCount || ROWS_VISIBLE, 1);
+  ROW_H = Math.max(40, Math.floor((chartH - 20 - 8 * (n - 1)) / n));
+  ROW_H = Math.min(ROW_H, 110);
+  ROW_GAP = Math.max(5, Math.round(ROW_H * 0.12));
+  TOTAL_ROW = ROW_H + ROW_GAP;
+  for (const site of allSites) {
+    if (!rowEls[site]) continue;
+    rowEls[site].row.style.height = ROW_H + 'px';
+    rowEls[site].track.style.height = Math.round(ROW_H * 0.72) + 'px';
+  }
+}
+
+// ── AVAILABLE BAR WIDTH ────────────────────────────────────────────────────
+let availBarW = 300;
+function calcBarW() {
+  availBarW = Math.max(100, window.innerWidth - PAD_LEFT - 26 - 36 - 116 - 20);
+  fitRowsToChart();
+}
+calcBarW();
+requestAnimationFrame(() => { fitRowsToChart(); });
+window.addEventListener('resize', calcBarW);
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render(t) {
+  const data  = getState(t);
+  const [year, month] = fromT(t);
+
+  const sorted = Object.entries(data)
+    .filter(([,v]) => v > 0.5)
+    .sort((a,b) => b[1] - a[1]);
+  const top    = sorted.slice(0, ROWS_VISIBLE);
+  const topSet = new Set(top.map(([s]) => s));
+  const maxVal = top[0]?.[1] || 1;
+
+  if (top.length !== lastVisibleCount) {
+    lastVisibleCount = top.length;
+    fitRowsToChart(top.length);
+  }
+
+  dateBadge.textContent  = `${MONTHS[month-1]} ${year}`;
+  ghostYear.textContent  = year;
+  progressFill.style.width = ((t - T_START) / (T_END - T_START) * 100).toFixed(2) + '%';
+
+  top.forEach(([site, val], idx) => {
+    const el = rowEls[site];
+    if (!el) return;
+    el.row.style.top     = (12 + idx * TOTAL_ROW) + 'px';
+    el.row.style.opacity = '1';
+    el.rank.textContent  = idx + 1;
+    el.fill.style.width  = Math.round((val / maxVal) * availBarW) + 'px';
+    el.num.textContent   = formatN(val);
+  });
+
+  for (const site of allSites) {
+    if (!topSet.has(site)) {
+      const el = rowEls[site];
+      if (el.row.style.opacity !== '0') {
+        el.row.style.opacity = '0';
+        el.row.style.top = `-${ROW_H + 30}px`;
+      }
+    }
+  }
+}
+
+// ── ANIMATION ──────────────────────────────────────────────────────────────
+let animT      = T_START;
+let playing    = true;
+let lastTs     = null;
+let speedFactor = 0.006;
+
+function setSpeed(mode) {
+  const map = { slow:0.006, normal:0.02, fast:0.07, turbo:0.20 };
+  speedFactor = map[mode] || 0.006;
+  const labels = { slow:'🐢 Slow', normal:'▶ Normal', fast:'⚡ Fast', turbo:'🚀 Turbo' };
+  document.getElementById('speed-display').textContent = 'Speed: ' + labels[mode];
+  ['s1','s2','s3','s4'].forEach(id => document.getElementById('btn-'+id).classList.remove('active'));
+  const ids = { slow:'s1', normal:'s2', fast:'s3', turbo:'s4' };
+  document.getElementById('btn-' + ids[mode]).classList.add('active');
+}
+
+function loop(ts) {
+  if (lastTs !== null && playing) {
+    const dt = Math.min(ts - lastTs, 100);
+    animT += dt * speedFactor;
+    if (animT >= T_END) {
+      animT = T_END;
+      playing = false;
+      document.getElementById('btn-play').textContent = '↺ Replay';
+    }
+  }
+  lastTs = ts;
+  render(animT);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ── CONTROLS ───────────────────────────────────────────────────────────────
+document.getElementById('btn-play').onclick = function() {
+  if (animT >= T_END) { animT = T_START; }
+  playing = !playing;
+  lastTs  = null;
+  this.textContent = playing ? '⏸ Pause' : '▶ Play';
+};
+document.getElementById('btn-s1').onclick = () => setSpeed('slow');
+document.getElementById('btn-s2').onclick = () => setSpeed('normal');
+document.getElementById('btn-s3').onclick = () => setSpeed('fast');
+document.getElementById('btn-s4').onclick = () => setSpeed('turbo');
+document.getElementById('btn-restart').onclick = () => {
+  animT = T_START; playing = true; lastTs = null;
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+};
+</script>
+</body>
+</html>
