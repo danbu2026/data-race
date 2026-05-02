@@ -153,25 +153,48 @@
 </style>
 
 <style>
-  #analysis { padding: 52px 40px 72px; border-top: 1px solid var(--border); max-width: 940px; }
+  /* ── ANALYSIS SECTION — full-width responsive layout ── */
+  #analysis {
+    padding: 52px 5% 72px;
+    border-top: 1px solid var(--border);
+    max-width: 1800px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
   #analysis h2 { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 28px; }
   .sblock { margin-bottom: 42px; }
   .sblock h3 { font-size: 15px; font-weight: 600; color: #e0e0f0; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
   .sblock h3 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
-  .sblock p { font-size: 14px; color: #aaa; line-height: 1.8; }
+  .sblock p { font-size: 14px; color: #aaa; line-height: 1.8; max-width: 860px; }
   .sblock p + p { margin-top: 10px; }
 
-  /* player cards */
-  .player-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 16px; }
-  .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  /* player cards — 6 across on wide, 3 on medium, 2 on small */
+  .player-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+    margin-top: 16px;
+  }
+  @media (max-width: 1280px) {
+    .player-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 780px) {
+    .player-grid { grid-template-columns: repeat(2, 1fr); }
+    #analysis { padding: 32px 4% 52px; }
+  }
+  @media (max-width: 480px) {
+    .player-grid { grid-template-columns: 1fr; }
+  }
+  .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; min-width: 0; }
   .player-card .pc-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
   .player-card .pc-maker { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
   .player-card .pc-stat { font-size: 22px; font-weight: 800; }
   .player-card .pc-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .player-card .pc-trend { font-size: 12px; margin-top: 8px; color: #ccc; }
+  .player-card .pc-trend { font-size: 12px; margin-top: 8px; color: #ccc; line-height: 1.5; }
 
-  /* share chart */
-  .share-bars { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+  /* share chart — max width so bars don't stretch absurdly wide */
+  .share-bars { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; max-width: 900px; }
   .share-row { display: flex; align-items: center; gap: 12px; }
   .share-name { width: 110px; font-size: 13px; font-weight: 600; color: #ccc; flex-shrink: 0; }
   .share-track { flex: 1; height: 26px; background: rgba(255,255,255,0.04); border-radius: 4px; position: relative; overflow: hidden; }
@@ -179,14 +202,46 @@
   .share-fill span { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.9); white-space: nowrap; }
   .share-pct { width: 50px; text-align: right; font-size: 12px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
 
-  /* timeline */
-  .timeline { margin-top: 16px; position: relative; padding-left: 24px; }
-  .timeline::before { content:''; position:absolute; left:7px; top:6px; bottom:6px; width:2px; background: rgba(167,139,250,0.2); }
-  .tl-item { position: relative; margin-bottom: 20px; }
-  .tl-item::before { content:''; position:absolute; left:-20px; top:5px; width:10px; height:10px; border-radius:50%; background: var(--accent); box-shadow: 0 0 8px rgba(167,139,250,0.5); }
+  /* timeline — 2 columns on wide screens */
+  .timeline {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px 48px;
+    max-width: 100%;
+    padding-left: 0;
+    position: relative;
+  }
+  .timeline::before { display: none; }
+  .tl-item {
+    position: relative;
+    margin-bottom: 0;
+    padding-left: 16px;
+    border-left: 2px solid rgba(167,139,250,0.3);
+  }
+  .tl-item::before {
+    content:''; position:absolute; left:-6px; top:4px;
+    width:10px; height:10px; border-radius:50%;
+    background: var(--accent); box-shadow: 0 0 8px rgba(167,139,250,0.5);
+  }
   .tl-date { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.5px; margin-bottom: 3px; }
   .tl-title { font-size: 14px; font-weight: 600; color: #e0e0f0; margin-bottom: 3px; }
   .tl-desc { font-size: 13px; color: #888; line-height: 1.6; }
+
+  /* timeline — fall back to single column on smaller screens */
+  @media (max-width: 900px) {
+    .timeline {
+      grid-template-columns: 1fr;
+      padding-left: 24px;
+    }
+    .timeline::before {
+      display: block;
+      content:''; position:absolute; left:7px; top:6px; bottom:6px;
+      width:2px; background: rgba(167,139,250,0.2);
+    }
+    .tl-item { padding-left: 0; border-left: none; }
+    .tl-item::before { left: -20px; }
+  }
 
   /* source table */
   .src-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px; }
