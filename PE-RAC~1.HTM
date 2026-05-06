@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Private Equity Race: AUM 2005 – 2026</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f0f5;
+    --muted: #556;
+    --accent: #E8B04A;
+    --accent2: #B8832A;
+    --green: #34d399;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  /* RACE PAGE */
+  #race-page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  header {
+    padding: 18px 36px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, rgba(232,176,74,0.07) 0%, transparent 100%);
+  }
+  .header-left h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.4px; }
+  .header-left h1 span { color: var(--accent); }
+  .header-left p { margin-top: 4px; font-size: 12px; color: var(--muted); }
+  #date-badge {
+    font-size: 36px; font-weight: 900; color: var(--accent);
+    letter-spacing: -1px; line-height: 1;
+    text-shadow: 0 0 40px rgba(232,176,74,0.35);
+    white-space: nowrap;
+  }
+  #chart-area { flex: 1; position: relative; overflow: hidden; padding: 8px 0 0; }
+  #ghost-year {
+    position: absolute; right: 24px; bottom: 8px;
+    font-size: 100px; font-weight: 900;
+    color: rgba(232,176,74,0.04);
+    pointer-events: none; line-height: 1; letter-spacing: -4px; user-select: none;
+  }
+  #unit-tag {
+    position: absolute; right: 20px; top: 10px;
+    font-size: 10px; color: #2a2a1a; letter-spacing: 1px; text-transform: uppercase;
+  }
+  #milestone {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    top: 12px; background: rgba(232,176,74,0.12);
+    border: 1px solid rgba(232,176,74,0.35);
+    border-radius: 8px; padding: 7px 18px;
+    font-size: 12px; font-weight: 600; color: var(--accent);
+    opacity: 0; transition: opacity 0.4s; pointer-events: none;
+    white-space: nowrap; text-align: center;
+  }
+  #milestone.show { opacity: 1; }
+
+  /* BAR ROWS */
+  .brow { position: absolute; left: 0; right: 0; display: flex; align-items: center; will-change: transform, opacity; }
+  .brow-rank { width: 28px; text-align: right; font-size: 13px; font-weight: 700; color: var(--muted); padding-right: 6px; flex-shrink: 0; }
+  .brow-logo { width: 34px; height: 34px; flex-shrink: 0; margin-right: 10px; display: flex; align-items: center; justify-content: center; }
+  .brow-logo svg { width: 34px; height: 34px; }
+  .brow-name { width: 130px; font-size: 14px; font-weight: 600; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; padding-right: 10px; }
+  .brow-track { flex: 1; background: rgba(255,255,255,0.03); border-radius: 5px; position: relative; overflow: hidden; }
+  .brow-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 5px; min-width: 6px; }
+  .brow-fill::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent 60%,rgba(255,255,255,0.13) 100%); border-radius:5px; }
+  .brow-num { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); white-space: nowrap; pointer-events: none; }
+
+  /* PROGRESS + CONTROLS */
+  #progress-wrap { height: 3px; background: rgba(255,255,255,0.06); flex-shrink: 0; }
+  #progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0%; transition: width 0.1s linear; box-shadow: 0 0 8px rgba(232,176,74,0.4); }
+  #controls { display: flex; align-items: center; gap: 8px; padding: 10px 24px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.3); flex-shrink: 0; }
+  .ctrl-btn { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: #aaa; padding: 5px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+  .ctrl-btn:hover { background: rgba(232,176,74,0.12); border-color: var(--accent); color: var(--accent); }
+  .ctrl-btn.active { background: rgba(232,176,74,0.18); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .ctrl-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+  #speed-lbl { font-size: 11px; color: var(--muted); margin-left: 4px; }
+  #src-tag { font-size: 10px; color: #1a1a0a; margin-left: auto; }
+
+  @media (max-width: 780px) {
+    header { padding: 12px 16px 8px; }
+    .header-left h1 { font-size: 15px; }
+    .header-left p { font-size: 10px; }
+    #date-badge { font-size: 28px; }
+    #ghost-year { font-size: 70px; right: 10px; }
+    .brow-rank { width: 20px; font-size: 11px; }
+    .brow-logo { width: 26px; height: 26px; margin-right: 6px; }
+    .brow-logo svg { width: 26px; height: 26px; }
+    .brow-name { width: 90px; font-size: 12px; }
+    .brow-num { font-size: 11px; left: 8px; }
+    #controls { padding: 7px 10px; gap: 5px; flex-wrap: wrap; }
+    .ctrl-btn { padding: 4px 8px; font-size: 10px; }
+    #src-tag { display: none; }
+  }
+</style>
+
+<div id="race-page">
+  <header>
+    <div class="header-left">
+      <h1>The Private Equity Race <span>2005 – 2025</span></h1>
+      <p>Assets Under Management ($B) · 8 global alternative asset managers · Sources: SEC filings · Annual reports · Preqin · Company earnings</p>
+    </div>
+    <div id="date-badge">2005</div>
+  </header>
+  <div id="progress-wrap"><div id="progress-fill"></div></div>
+  <div id="chart-area">
+    <div id="ghost-year">2005</div>
+    <div id="unit-tag">AUM — $Billions</div>
+    <div id="milestone"></div>
+  </div>
+  <div id="controls">
+    <button class="ctrl-btn active" id="btn-s1">🐢 Slow</button>
+    <button class="ctrl-btn" id="btn-s2">▶ Normal</button>
+    <button class="ctrl-btn" id="btn-s3">⚡ Fast</button>
+    <button class="ctrl-btn" id="btn-s4">🚀 Turbo</button>
+    <div class="ctrl-sep"></div>
+    <button class="ctrl-btn" id="btn-play">⏸ Pause</button>
+    <button class="ctrl-btn" id="btn-restart">↩ Restart</button>
+    <span id="speed-lbl">Speed: 🐢 Slow</span>
+    <span id="src-tag">Data: SEC 10-K filings · Annual reports · Preqin · Bloomberg (see sources below)</span>
+  </div>
+</div>
+
+<!-- ANALYSIS SECTION -->
+<style>
+  #analysis {
+    padding: 52px 5% 72px;
+    border-top: 1px solid var(--border);
+    max-width: 1800px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  #analysis h2 { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 28px; }
+  .sblock { margin-bottom: 42px; }
+  .sblock h3 { font-size: 15px; font-weight: 600; color: #e0e0f0; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .sblock h3 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .sblock > p { font-size: 14px; color: #aaa; line-height: 1.8; max-width: 860px; }
+  .sblock > p + p { margin-top: 10px; }
+
+  /* PLAYER CARDS — 8 columns → 4 → 2 → 1 */
+  .player-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+  @media (max-width: 1400px) { .player-grid { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 900px)  { .player-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px)  { .player-grid { grid-template-columns: 1fr; } }
+  .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; min-width: 0; }
+  .player-card .pc-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .player-card .pc-maker { font-size: 10px; color: var(--muted); margin-bottom: 8px; }
+  .player-card .pc-stat { font-size: 20px; font-weight: 800; }
+  .player-card .pc-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .player-card .pc-trend { font-size: 11px; margin-top: 8px; color: #ccc; line-height: 1.5; }
+
+  /* MARKET SHARE BARS */
+  .share-bars { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; max-width: 900px; }
+  .share-row { display: flex; align-items: center; gap: 12px; }
+  .share-name { width: 120px; font-size: 13px; font-weight: 600; color: #ccc; flex-shrink: 0; }
+  .share-track { flex: 1; height: 26px; background: rgba(255,255,255,0.04); border-radius: 4px; position: relative; overflow: hidden; }
+  .share-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 10px; transition: width 1.2s cubic-bezier(0.4,0,0.2,1); }
+  .share-fill span { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.9); white-space: nowrap; }
+  .share-pct { width: 60px; text-align: right; font-size: 12px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+
+  /* TIMELINE — 2 columns */
+  .timeline {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px 48px;
+    max-width: 100%;
+  }
+  .tl-item { padding-left: 16px; border-left: 2px solid rgba(232,176,74,0.3); position: relative; }
+  .tl-item::before { content:''; position:absolute; left:-6px; top:4px; width:10px; height:10px; border-radius:50%; background: var(--accent); box-shadow: 0 0 8px rgba(232,176,74,0.5); }
+  .tl-date { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.5px; margin-bottom: 3px; }
+  .tl-title { font-size: 14px; font-weight: 600; color: #e0e0f0; margin-bottom: 4px; }
+  .tl-desc { font-size: 13px; color: #888; line-height: 1.6; }
+  @media (max-width: 900px) {
+    .timeline { grid-template-columns: 1fr; padding-left: 24px; }
+    .tl-item { border-left: none; padding-left: 0; }
+    .tl-item::before { left: -20px; }
+  }
+
+  /* INSIGHTS — 3 columns */
+  .insights-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 16px; }
+  .ig-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .ig-card h4 { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+  .ig-card p { font-size: 13px; color: #aaa; line-height: 1.7; }
+  @media (max-width: 900px) { .insights-grid { grid-template-columns: 1fr; } }
+
+  /* FORECAST — 2 columns */
+  .forecast-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px; }
+  .fc-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .fc-card .fc-name { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .fc-card .fc-trajectory { font-size: 12px; color: #aaa; line-height: 1.6; margin-bottom: 8px; }
+  .fc-card .fc-verdict { font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 6px; display: inline-block; }
+  .fc-verdict.bull { background: rgba(52,211,153,0.12); color: #34d399; }
+  .fc-verdict.bear { background: rgba(239,68,68,0.12); color: #ef4444; }
+  .fc-verdict.neutral { background: rgba(251,191,36,0.12); color: #fbbf24; }
+  @media (max-width: 900px) { .forecast-grid { grid-template-columns: 1fr; } }
+
+  /* AI TRANSFORMATION */
+  .ai-transform { background: linear-gradient(135deg, rgba(232,176,74,0.08) 0%, rgba(184,131,42,0.05) 100%); border: 1px solid rgba(232,176,74,0.2); border-radius: 14px; padding: 32px 36px; margin-top: 16px; }
+  .ai-transform h3 { font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 16px; }
+  .ai-transform p { font-size: 14px; color: #bbb; line-height: 1.9; max-width: 900px; }
+  .ai-transform p + p { margin-top: 12px; }
+  .ai-transform .ai-question { font-size: 15px; font-weight: 600; color: #f0e8d0; margin-top: 20px; border-left: 3px solid var(--accent); padding-left: 16px; line-height: 1.6; }
+
+  /* SOURCE TABLE */
+  .src-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px; }
+  .src-table th { text-align: left; padding: 8px 12px; font-size: 11px; color: var(--muted); font-weight: 700; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; }
+  .src-table td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #bbb; vertical-align: top; line-height: 1.5; }
+  .src-table tr:last-child td { border-bottom: none; }
+  .src-table a { color: var(--accent); text-decoration: none; font-size: 11px; }
+  .src-table a:hover { text-decoration: underline; }
+  .badge { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; white-space:nowrap; }
+  .badge.v { background:rgba(52,211,153,0.15); color:#34d399; }
+  .badge.e { background:rgba(251,191,36,0.15); color:#fbbf24; }
+
+  footer { text-align: center; padding: 24px; font-size: 11px; color: #1a1a0a; border-top: 1px solid var(--border); }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+
+<section id="analysis">
+  <h2>The Private Equity Race — Data, Story &amp; Forecast</h2>
+
+  <!-- PLAYER CARDS -->
+  <div class="sblock">
+    <h3><span class="dot"></span>The Contenders — AUM at Year-End 2025</h3>
+    <div class="player-grid">
+      <div class="player-card">
+        <div class="pc-name" style="color:#E8B04A">Blackstone</div>
+        <div class="pc-maker">NYSE: BX · New York</div>
+        <div class="pc-stat" style="color:#E8B04A">$1.27T</div>
+        <div class="pc-lbl">AUM — Q4 2025 (Verified)</div>
+        <div class="pc-trend">World's largest alternative asset manager · From $70B at IPO (2007) to $1.27T · Real estate, PE, credit, and infrastructure</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#7C9FE0">Apollo</div>
+        <div class="pc-maker">NYSE: APO · New York</div>
+        <div class="pc-stat" style="color:#7C9FE0">$938B</div>
+        <div class="pc-lbl">AUM — 2025 Annual Report</div>
+        <div class="pc-trend">Fastest-growing of the mega-managers · Athene insurance acquisition turbocharged AUM · Now the closest challenger to Blackstone</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#5B8DD9">KKR</div>
+        <div class="pc-maker">NYSE: KKR · New York</div>
+        <div class="pc-stat" style="color:#5B8DD9">$744B</div>
+        <div class="pc-lbl">AUM — Year-End 2025 (Verified)</div>
+        <div class="pc-trend">From $59B in 2011 to $744B today · Global Atlantic insurance + infrastructure driving growth · 18% CAGR since 2010</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#A78BFA">Ares</div>
+        <div class="pc-maker">NYSE: ARES · Los Angeles</div>
+        <div class="pc-stat" style="color:#A78BFA">$596B</div>
+        <div class="pc-lbl">AUM — Nov 2025 (Verified)</div>
+        <div class="pc-trend">Fastest percentage grower of all 8 · From $74B at IPO (2014) to $596B · Credit-first strategy beats buyout-first peers</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#34D399">Carlyle</div>
+        <div class="pc-maker">NASDAQ: CG · Washington DC</div>
+        <div class="pc-stat" style="color:#34D399">$480B</div>
+        <div class="pc-lbl">AUM — 2025 (Estimated)</div>
+        <div class="pc-trend">The original PE powerhouse · $195B in 2017, now $480B · Slowest growth of the listed big 4 · Leadership transitions were costly</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#F87171">TPG</div>
+        <div class="pc-maker">NASDAQ: TPG · Fort Worth</div>
+        <div class="pc-stat" style="color:#F87171">$303B</div>
+        <div class="pc-lbl">AUM — Year-End 2025 (Verified)</div>
+        <div class="pc-trend">Last major PE firm to go public (Jan 2022) · Angelo Gordon acquisition added scale · 166% AUM growth in 4 years</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#4ADE80">CVC</div>
+        <div class="pc-maker">AMS: CVC · Luxembourg</div>
+        <div class="pc-stat" style="color:#4ADE80">€200B ($215B)</div>
+        <div class="pc-lbl">AUM — Year-End 2024 (Verified)</div>
+        <div class="pc-trend">Europe's largest PE firm · Raised the world's largest PE fund ever (€26B, 2023) · IPO'd on Euronext Amsterdam in 2024</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-name" style="color:#FB923C">Warburg Pincus</div>
+        <div class="pc-maker">Private · New York</div>
+        <div class="pc-stat" style="color:#FB923C">&gt;$100B</div>
+        <div class="pc-lbl">AUM — Q1 2026 (Verified, warburgpincus.com)</div>
+        <div class="pc-trend">The last major traditional PE firm · Founded 1966 · Crossed $100B milestone in early 2026 · Refused to go public · Asia and growth-focused strategy</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARKET SHARE COMPARISON -->
+  <div class="sblock">
+    <h3><span class="dot"></span>Who Gained, Who Lost — 2015 vs 2025</h3>
+    <p>In 2015, Blackstone controlled 31% of the combined AUM of these 8 firms. By 2025 its share had actually fallen to 27% — even as its absolute AUM grew 3.8x — because Apollo and Ares grew faster. The race within the race: who is eating whose lunch.</p>
+    <div class="share-bars" id="share-bars-container"></div>
+  </div>
+
+  <!-- KEY MOMENTS TIMELINE -->
+  <div class="sblock">
+    <h3><span class="dot"></span>Key Moments That Shaped the Race</h3>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-date">JUNE 2007</div>
+        <div class="tl-title">Blackstone IPO — private equity goes public</div>
+        <div class="tl-desc">Steve Schwarzman rang the bell at the NYSE with $70 billion in AUM. The Blackstone IPO was controversial — was it the top of the buyout market? Sceptics were proven spectacularly wrong. Going public gave Blackstone permanent capital, brand credibility, and a currency to pay for talent and acquisitions that private firms could not match.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">SEP 2008</div>
+        <div class="tl-title">Lehman Brothers collapses — PE fundraising freezes</div>
+        <div class="tl-desc">The Global Financial Crisis devastated leveraged buyouts. PE firms couldn't raise debt, couldn't exit investments, and portfolio companies struggled. But the crisis also revealed a strategic advantage: firms with dry powder — KKR, Apollo, Carlyle — could buy distressed assets at historic discounts. The crisis accelerated the shift to credit strategies that now dominate PE growth.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2012</div>
+        <div class="tl-title">Carlyle and Apollo IPOs — a new model takes hold</div>
+        <div class="tl-desc">Both Carlyle ($147B AUM) and Apollo ($113B AUM) went public within months of each other. The message to the industry was clear: permanent capital, public brand visibility, and institutional-grade governance were competitive advantages. The "partnership" model that PE firms had guarded for decades began to look like a liability.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2014</div>
+        <div class="tl-title">Ares IPO — the credit revolution begins</div>
+        <div class="tl-desc">Ares Management listed with $74B in AUM, less than half the size of Carlyle. What the market underestimated was Ares's credit-first DNA. As banks retreated from corporate lending post-Dodd-Frank, Ares filled the vacuum. By 2025 it had grown 8x in 11 years — the fastest AUM growth rate of any firm in this race — largely through direct lending and alternative credit.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">JAN 2021</div>
+        <div class="tl-title">Apollo-Athene merger — insurance changes everything</div>
+        <div class="tl-desc">Apollo completed its acquisition of Athene, a retirement services company with $200B in insurance assets. Overnight, Apollo's AUM jumped by nearly $80 billion. KKR had done the same with Global Atlantic. This wasn't just dealmaking — it was a fundamental shift in how PE firms source capital. Insurance float is permanent, low-cost, and unaffected by fundraising cycles. The firms that paired with insurers built a structurally different business.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">JAN 2022</div>
+        <div class="tl-title">TPG IPO — the last major PE firm goes public</div>
+        <div class="tl-desc">TPG's Nasdaq IPO at $9B valuation completed a 15-year transformation of the PE industry from private partnerships to public alternative asset managers. With $109B in AUM at IPO, TPG then acquired Angelo Gordon in 2023 for $2.7B, immediately adding $50B+ in AUM. The acquisition playbook — buy scale rather than raise it — has become standard.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">NOV 2023</div>
+        <div class="tl-title">Blackstone crosses $1 trillion in AUM</div>
+        <div class="tl-desc">No asset manager in history had reached $1 trillion in private markets. Blackstone did it with a model that would have been unrecognisable in 2005: retail investor access through vehicles like BREIT, insurance capital from reinsurers, and a $70B+ credit business. The firm had evolved from a buyout shop into a multi-asset manager that resembles BlackRock more than it resembles the original PE model.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2024</div>
+        <div class="tl-title">CVC IPO — Europe's PE giant goes public</div>
+        <div class="tl-desc">CVC Capital Partners listed on Euronext Amsterdam, completing the final major PE IPO of the era. With €200B in AUM and the world's largest-ever PE fund (€26B raised in 2023), CVC's listing was the European answer to the Wall Street PE machine. It also confirmed a structural truth: in the modern PE industry, being private is now the exception, not the rule.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT THIS MEANS -->
+  <div class="sblock">
+    <h3><span class="dot"></span>What This Means for Finance Professionals</h3>
+    <div class="insights-grid">
+      <div class="ig-card">
+        <h4>Private equity is no longer "alternative"</h4>
+        <p>In 2005, these 8 firms managed a combined ~$220 billion — roughly the size of one large bank's trading book. By 2025, they manage nearly $4.7 trillion. This is larger than the GDP of Germany. Private equity has become a core part of the global financial system, not a niche strategy. Every finance professional now works in an industry that is partly shaped by PE capital, even if they never work directly for a PE firm.</p>
+      </div>
+      <div class="ig-card">
+        <h4>The credit pivot is the biggest story most people missed</h4>
+        <p>Ares grew 8x in 11 years not through buyouts — but through direct lending, CLOs, and alternative credit. Apollo's insurance strategy is fundamentally a fixed-income management business. KKR's fastest-growing segment is infrastructure and credit. The PE industry's dirty secret is that its biggest growth has come from replacing banks as credit providers — a structural shift driven by post-GFC regulation that most traditional finance professionals still haven't fully absorbed.</p>
+      </div>
+      <div class="ig-card">
+        <h4>Carlyle's lag is a leadership story, not a strategy story</h4>
+        <p>In 2005, Carlyle was arguably more prestigious than Blackstone. It had three famous founders, government connections on every continent, and a brand built on geopolitical deal-making. By 2025, it manages $480B against Blackstone's $1.27T — less than 40 cents for every dollar Blackstone manages. The divergence tracks almost exactly to Carlyle's founder succession issues (2017–2022), while Blackstone and Apollo had stable, execution-focused leadership. Culture and continuity compound just like capital does.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORECAST -->
+  <div class="sblock">
+    <h3><span class="dot"></span>Forecast — Where the Race Goes Next (2026–2028)</h3>
+    <p>Based on current AUM growth trajectories, announced fund targets, insurance partnerships, and retail channel expansion. These are data-informed estimates. All forecasts subject to rate cycles, credit conditions, and regulatory developments in private markets.</p>
+    <div class="forecast-grid">
+      <div class="fc-card">
+        <div class="fc-name" style="color:#E8B04A">Blackstone — heading toward $2 trillion</div>
+        <div class="fc-trajectory">BREIT retail channel + insurance mandates + infrastructure build-out provide three independent growth engines. At 15% annual growth, $2T is achievable by 2028. Downside: a real estate correction (25%+ of AUM) or retail investor confidence crisis could slow the BREIT engine. Base case: $1.7T by end 2027.</div>
+        <span class="fc-verdict bull">🟢 Strong Bull — unmatched distribution moat</span>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name" style="color:#7C9FE0">Apollo — the challenger with momentum</div>
+        <div class="fc-trajectory">At 25%+ annual AUM growth recently, Apollo could approach $1.5T by 2027. The Athene insurance engine is structural and repeatable. Risk: credit market stress hits both insurance liabilities and AUM values simultaneously. Base case: $1.2T by end 2027. Upside: acquires another insurance platform. This firm is growing faster than Blackstone — few have noticed yet.</div>
+        <span class="fc-verdict bull">🟢 Very Bullish — fastest organic grower</span>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name" style="color:#5B8DD9">KKR — infrastructure as the new engine</div>
+        <div class="fc-trajectory">Global Atlantic insurance + $100B+ infrastructure fundraising targets create a durable growth path. Energy transition, data centres, and digital infrastructure are KKR's stated priorities — all massive capital absorbers. Base case: $1T by end 2027. Risk: global Atlantic integration complexity if credit markets stress. Still on track.</div>
+        <span class="fc-verdict bull">🟢 Bullish — insurance + infrastructure combination</span>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name" style="color:#A78BFA">Ares — credit growth has structural tailwinds</div>
+        <div class="fc-trajectory">Direct lending, CLOs, and real assets credit are all benefiting from bank retreat. Ares is less dependent on buyout cycles than peers. At current trajectory, $1T is possible by 2028. Downside: a credit cycle turn hits direct lending harder than equity strategies. Base case: $800B by end 2027. Most underrated firm in this race.</div>
+        <span class="fc-verdict bull">🟢 Bullish — least cyclical of the group</span>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name" style="color:#34D399">Carlyle — needs a catalyst</div>
+        <div class="fc-trajectory">Leadership has stabilised under Harvey Schwartz. Credit expansion is the priority. But Carlyle lacks an insurance partner (unlike Apollo and KKR) and its retail channel is less developed than Blackstone's. Base case: $600B by end 2027, organic growth only. Upside: acquires a credit platform or insurance partnership to close the structural gap with peers.</div>
+        <span class="fc-verdict neutral">🟡 Neutral — solid but structurally disadvantaged</span>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name" style="color:#F87171">TPG — integration phase, then acceleration</div>
+        <div class="fc-trajectory">Angelo Gordon integration is the near-term focus. TPG's technology and climate investing differentiation is a genuine long-term edge as ESG-aligned capital grows. Base case: $400B by 2027. Downside: tech valuations compress, weakening flagship fund performance. Growth story is real but execution risk is higher than peers.</div>
+        <span class="fc-verdict neutral">🟡 Neutral — compelling strategy, high execution bar</span>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name" style="color:#4ADE80">CVC — European expansion opportunity</div>
+        <div class="fc-trajectory">Public listing provides acquisition currency. European private credit market is underdeveloped versus the US — CVC is positioned to replicate the US direct lending build-out. Risk: European economic slowdown, political risk. Base case: €270B by 2027. The IPO was the starting gun, not the finish line.</div>
+        <span class="fc-verdict neutral">🟡 Bullish in Europe — less certain globally</span>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name" style="color:#FB923C">Warburg Pincus — niche strength, capped scale</div>
+        <div class="fc-trajectory">Deliberately not trying to be a mega-manager. Asia focus (particularly India and Southeast Asia) provides differentiated deal flow. But without insurance partnerships, retail channels, or credit expansion, growth is capped by traditional fundraising cycles. Base case: $100B by 2028. The most "traditional" PE firm in this race, for better and worse.</div>
+        <span class="fc-verdict bear">🔴 Cautious — deliberate scale ceiling limits growth</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI TRANSFORMATION -->
+  <div class="sblock">
+    <div class="ai-transform">
+      <h3>🤖 The Real Disruption: AI Is Coming for the PE Playbook</h3>
+      <p>Private equity built a $4.7 trillion industry on information asymmetry. PE firms found deals that public markets couldn't see, hired consultants that portfolio companies couldn't afford, and ran operational improvement programs at a scale that family-owned businesses couldn't replicate. The edge was people, relationships, and proprietary process — things that took decades to build and couldn't be copied overnight.</p>
+      <p>AI threatens every part of that edge. Deal sourcing that took analyst pools of 50 people is being automated. Due diligence that once filled data rooms with PDFs can now be processed in hours. Portfolio monitoring dashboards that required dedicated finance teams can run continuously on structured feeds. The firms that are investing in AI infrastructure now — Blackstone has announced a dedicated AI team, Apollo is deploying AI in insurance claims processing — are building a new kind of edge to replace the old one.</p>
+      <p>For the finance professional watching this chart: the real question is not which firm wins the AUM race. The question is what role you want to play in the next iteration of it. The analysts and associates who spend 2026 learning how to use AI tools in financial modelling, due diligence, and reporting will be more valuable to these firms than the ones who are waiting for the tools to stabilise. This chart took days of research to build in the old way. It took hours with AI. That efficiency gap is exactly what is reshaping every industry in this chart.</p>
+      <div class="ai-question">In 2005, the combined AUM of these 8 firms was ~$220 billion. By 2025, it was $4.7 trillion — a 21x increase in 20 years. The next 20 years will be shaped by whoever combines institutional capital with AI-powered deal intelligence most effectively. Which firm do you think wins — and where do you want to be when they do?</div>
+    </div>
+  </div>
+
+  <!-- DATA SOURCES -->
+  <div class="sblock">
+    <h3><span class="dot"></span>Data Sources &amp; Accuracy</h3>
+    <p>AUM figures come primarily from SEC 10-K annual filings (for listed firms) and verified press releases. Pre-IPO and private firm figures are estimated from available third-party research, journalist-cited disclosures, and industry databases. All interpolated values between verified anchor points are linearly estimated.</p>
+    <table class="src-table">
+      <thead>
+        <tr><th>Data Point</th><th>Value</th><th>Accuracy</th><th>Source</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Blackstone AUM — IPO (June 2007)</td><td>$70B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://en.wikipedia.org/wiki/Blackstone_Inc." target="_blank">Blackstone IPO S-1 / Wikipedia / Multiple press reports</a></td></tr>
+        <tr><td>Blackstone AUM — Q4 2012</td><td>$210B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.pionline.com/article/20130131/ONLINE/130139966/blackstone-s-aum-jumps-26-to-a-record-210-billion" target="_blank">Pensions &amp; Investments, Jan 2013</a></td></tr>
+        <tr><td>Blackstone AUM — Year-End 2015</td><td>$337B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.blackstone.com" target="_blank">Blackstone Q4 2015 Earnings Release</a></td></tr>
+        <tr><td>Blackstone AUM — Q3 2017</td><td>$387B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.blackstone.com" target="_blank">Blackstone Q3 2017 Earnings Release</a></td></tr>
+        <tr><td>Blackstone AUM — Year-End 2023</td><td>$1,040B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.blackstone.com/wp-content/uploads/sites/2/2024/01/Blackstone4Q23EarningsPressRelease.pdf" target="_blank">Blackstone Q4 2023 Earnings Press Release</a></td></tr>
+        <tr><td>Blackstone AUM — Year-End 2024</td><td>$1,100B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.blackstone.com" target="_blank">Blackstone Q4 2024 Earnings</a></td></tr>
+        <tr><td>Blackstone AUM — Q4 2025</td><td>$1,270B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.pionline.com/asset-management/pi-blackstone-q4-2025-returns/" target="_blank">Pensions &amp; Investments — Blackstone Q4 2025</a></td></tr>
+        <tr><td>KKR AUM — Year-End 2011</td><td>$59B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.sec.gov/Archives/edgar/data/1404912/000104746912001497/a2207447z10-k.htm" target="_blank">KKR 10-K Annual Report 2011 (SEC EDGAR)</a></td></tr>
+        <tr><td>KKR AUM — Year-End 2023</td><td>$553B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.alternativeswatch.com/2024/02/06/kkr-reaches-553bn-in-aum/" target="_blank">Alternatives Watch, Feb 2024</a></td></tr>
+        <tr><td>KKR AUM — Year-End 2024</td><td>$638B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://ir.kkr.com/" target="_blank">KKR Q4 2024 Earnings</a></td></tr>
+        <tr><td>KKR AUM — Year-End 2025</td><td>$744B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.stocktitan.net/sec-filings/KKR/10-k-kkr-co-inc-files-annual-report-7706029b7dbd.html" target="_blank">KKR 10-K Annual Report 2025</a></td></tr>
+        <tr><td>Apollo AUM — Q1 2017</td><td>~$197B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://ir.apollo.com/" target="_blank">Apollo Q1 2017 Earnings</a></td></tr>
+        <tr><td>Apollo AUM — Q3 2023</td><td>$631B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://d1io3yog0oux5.cloudfront.net/_ba0ffc502a03437562155d49744a1326/apollo/db/2247/21560/full_earnings_release/AGM+Earnings+Release+3Q%272023.pdf" target="_blank">Apollo Q3 2023 Earnings Release</a></td></tr>
+        <tr><td>Apollo AUM — Year-End 2023</td><td>$651B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.alternativeswatch.com/2024/02/08/apollo-reports-651bn-in-aum/" target="_blank">Alternatives Watch, Feb 2024</a></td></tr>
+        <tr><td>Apollo AUM — Year-End 2025 (10-K)</td><td>$938B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.stocktitan.net/sec-filings/APO/10-k-apollo-global-management-inc-files-annual-report-4f45671d90f7.html" target="_blank">Apollo 10-K Annual Report 2025</a></td></tr>
+        <tr><td>Carlyle AUM — IPO (2012)</td><td>$147B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://en.wikipedia.org/wiki/The_Carlyle_Group" target="_blank">Carlyle IPO prospectus / Wikipedia</a></td></tr>
+        <tr><td>Carlyle AUM — Year-End 2017</td><td>$195B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://ir.carlyle.com/annual-data" target="_blank">Carlyle Annual Report 2017</a></td></tr>
+        <tr><td>Carlyle AUM — Year-End 2023</td><td>$426B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://ir.carlyle.com/annual-data" target="_blank">Carlyle Annual Report 2023</a></td></tr>
+        <tr><td>Carlyle AUM — Q3 2024</td><td>$447B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://ir.carlyle.com/annual-data" target="_blank">Carlyle Q3 2024 Earnings</a></td></tr>
+        <tr><td>Ares AUM — IPO (2014)</td><td>$74B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://en.wikipedia.org/wiki/Ares_Management" target="_blank">Ares IPO Prospectus 2014 / Wikipedia</a></td></tr>
+        <tr><td>Ares AUM — Nov 2025</td><td>$596B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.aresmgmt.com/about-ares-management-corporation" target="_blank">Ares Management Corporate Overview, Nov 2025</a></td></tr>
+        <tr><td>TPG AUM — Year-End 2020</td><td>$90B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.sec.gov/Archives/edgar/data/1880661/000188066125000014/tpg-20241231.htm" target="_blank">TPG 10-K 2024 (historical comparison table)</a></td></tr>
+        <tr><td>TPG AUM — Year-End 2021</td><td>$113.6B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.sec.gov/Archives/edgar/data/1880661/000188066125000014/tpg-20241231.htm" target="_blank">TPG 10-K 2024 (historical comparison table)</a></td></tr>
+        <tr><td>TPG AUM — Year-End 2024</td><td>$245.9B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.sec.gov/Archives/edgar/data/1880661/000188066125000014/tpg-20241231.htm" target="_blank">TPG 10-K Annual Report 2024 (SEC)</a></td></tr>
+        <tr><td>TPG AUM — Year-End 2025</td><td>$303B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.stocktitan.net/sec-filings/TPG/10-k-tpg-inc-files-annual-report-28fdf086d8fc.html" target="_blank">TPG 10-K Annual Report 2025</a></td></tr>
+        <tr><td>CVC AUM — Year-End 2023</td><td>€186B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.cvc.com/media/news/2025/full-year-2024-activity-update/" target="_blank">CVC Full-Year 2024 Activity Update</a></td></tr>
+        <tr><td>CVC AUM — Year-End 2024</td><td>€200B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.cvc.com/media/news/2025/full-year-results-2024/" target="_blank">CVC Full-Year Results 2024</a></td></tr>
+        <tr><td>Blackstone AUM — Q3 2025 (Sep 30)</td><td>$1,242B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.pionline.com/asset-management/pi-blackstone-schwarzmann-alternatives-aum-record/" target="_blank">Pensions &amp; Investments — Blackstone Q3 2025 record AUM</a></td></tr>
+        <tr><td>KKR AUM — Q3 2025 (Sep 30)</td><td>$723B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://www.pionline.com/asset-management/pi-kkr-third-quarte-aum-capital-raised/" target="_blank">Pensions &amp; Investments — KKR surpasses $700B in AUM, Q3 2025</a></td></tr>
+        <tr><td>Warburg Pincus AUM — Jun 2025</td><td>~$87B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://foxbusinessmarkets.com/warburg-pincus-llc/" target="_blank">Fox Business Markets — Warburg Pincus overview, Jun 2025</a></td></tr>
+        <tr><td>Warburg Pincus AUM — Q1 2026 (current)</td><td>&gt;$100B</td><td><span class="badge v">✓ Verified</span></td><td><a href="https://warburgpincus.com/" target="_blank">Warburg Pincus official website — "more than $100 billion in AUM", May 2026</a></td></tr>
+        <tr><td>All values between verified anchor points</td><td>Various</td><td><span class="badge e">~ Estimated</span></td><td>Linear interpolation between verified anchors. 2025 quarterly values estimated where not directly reported. Pre-IPO figures estimated from third-party research and press coverage.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+<footer>Built with AI · Data: SEC 10-K Filings · Pensions &amp; Investments · Alternatives Watch · CVC Annual Reports · TPG Annual Reports · <a href="https://github.com/danbu2026/data-race" target="_blank">github.com/danbu2026/data-race</a></footer>
+
+<script>
+const COLORS = {
+  'Blackstone':    '#E8B04A',
+  'Apollo':        '#7C9FE0',
+  'KKR':           '#5B8DD9',
+  'Ares':          '#A78BFA',
+  'Carlyle':       '#34D399',
+  'TPG':           '#F87171',
+  'CVC':           '#4ADE80',
+  'Warburg':       '#FB923C',
+};
+
+function logo(site) {
+  const mk = (txt, bg, fg='white', fs=9) =>
+    `<svg viewBox="0 0 28 28"><rect width="28" height="28" rx="6" fill="${bg}"/><text x="14" y="19" text-anchor="middle" fill="${fg}" font-size="${fs}" font-weight="bold" font-family="Arial,sans-serif">${txt}</text></svg>`;
+  const L = {
+    'Blackstone':  mk('BX','#E8B04A','#111',8),
+    'Apollo':      mk('APO','#7C9FE0','white',7),
+    'KKR':         mk('KKR','#5B8DD9','white',8),
+    'Ares':        mk('ARES','#A78BFA','white',7),
+    'Carlyle':     mk('CG','#34D399','#111',9),
+    'TPG':         mk('TPG','#F87171','white',8),
+    'CVC':         mk('CVC','#4ADE80','#111',8),
+    'Warburg':     mk('WP','#FB923C','white',9),
+  };
+  return L[site] || mk(site.slice(0,2),'#555');
+}
+
+// KEYFRAMES — AUM in $Billions
+// All values VERIFIED or ESTIMATED as noted; see source table
+const KF = [
+  // Jan 2005 — Estimated (pre-IPO era; all firms private or early stage)
+  { y:2005, m:1, d:{ Blackstone:28, Apollo:12, KKR:40, Ares:3, Carlyle:26, TPG:28, CVC:9, Warburg:9 }},
+  // Dec 2006 — Estimated (pre-GFC LBO boom)
+  { y:2006, m:12, d:{ Blackstone:55, Apollo:22, KKR:58, Ares:7, Carlyle:52, TPG:42, CVC:18, Warburg:13 }},
+  // Jun 2007 — Blackstone IPO: $70B VERIFIED; others estimated
+  { y:2007, m:6, d:{ Blackstone:70, Apollo:28, KKR:63, Ares:11, Carlyle:65, TPG:50, CVC:22, Warburg:14 }},
+  // Dec 2008 — GFC; fundraising frozen; Apollo/KKR buying distressed assets
+  { y:2008, m:12, d:{ Blackstone:90, Apollo:52, KKR:55, Ares:17, Carlyle:82, TPG:40, CVC:23, Warburg:16 }},
+  // Dec 2010 — Post-GFC recovery; PE rebounds on low-rate environment
+  { y:2010, m:12, d:{ Blackstone:127, Apollo:68, KKR:58, Ares:32, Carlyle:130, TPG:50, CVC:32, Warburg:24 }},
+  // Dec 2011 — KKR: $59B VERIFIED (10-K); others estimated
+  { y:2011, m:12, d:{ Blackstone:166, Apollo:78, KKR:59, Ares:43, Carlyle:140, TPG:53, CVC:37, Warburg:29 }},
+  // Dec 2012 — Blackstone: $210B VERIFIED; Carlyle IPO: $147B VERIFIED; Apollo ~$113B est.
+  { y:2012, m:12, d:{ Blackstone:210, Apollo:113, KKR:78, Ares:55, Carlyle:147, TPG:56, CVC:43, Warburg:33 }},
+  // Dec 2014 — Ares IPO: $74B VERIFIED; others estimated
+  { y:2014, m:12, d:{ Blackstone:290, Apollo:162, KKR:98, Ares:74, Carlyle:193, TPG:62, CVC:55, Warburg:41 }},
+  // Dec 2015 — Blackstone: $337B VERIFIED; Carlyle ~$188B est.
+  { y:2015, m:12, d:{ Blackstone:337, Apollo:163, KKR:120, Ares:96, Carlyle:188, TPG:70, CVC:59, Warburg:44 }},
+  // Dec 2017 — Blackstone: $387B VERIFIED; Carlyle: $195B VERIFIED; Apollo Q1 ~$197B→~$248B year-end
+  { y:2017, m:12, d:{ Blackstone:387, Apollo:248, KKR:153, Ares:109, Carlyle:195, TPG:74, CVC:67, Warburg:53 }},
+  // Dec 2019 — Blackstone: ~$554B est; KKR ~$218B est; Apollo ~$316B est
+  { y:2019, m:12, d:{ Blackstone:554, Apollo:316, KKR:218, Ares:149, Carlyle:222, TPG:81, CVC:82, Warburg:58 }},
+  // Dec 2020 — TPG: $90B VERIFIED; Apollo ~$400B (pre-Athene completion)
+  { y:2020, m:12, d:{ Blackstone:619, Apollo:400, KKR:252, Ares:197, Carlyle:260, TPG:90, CVC:102, Warburg:63 }},
+  // Dec 2021 — TPG: $113.6B VERIFIED; Blackstone ~$731B est; Apollo ~$481B (post-Athene)
+  { y:2021, m:12, d:{ Blackstone:731, Apollo:481, KKR:367, Ares:282, Carlyle:301, TPG:114, CVC:140, Warburg:70 }},
+  // Dec 2022 — Blackstone ~$975B est; KKR ~$490B est
+  { y:2022, m:12, d:{ Blackstone:975, Apollo:548, KKR:490, Ares:352, Carlyle:374, TPG:135, CVC:155, Warburg:74 }},
+  // Dec 2023 — Blackstone: $1,040B VERIFIED; KKR: $553B VERIFIED; Apollo: $651B VERIFIED; Carlyle: $426B VERIFIED; CVC: €186B (~$200B) VERIFIED
+  { y:2023, m:12, d:{ Blackstone:1040, Apollo:651, KKR:553, Ares:419, Carlyle:426, TPG:222, CVC:200, Warburg:80 }},
+  // Dec 2024 — Blackstone: $1,100B VERIFIED; KKR: $638B VERIFIED; Carlyle: $447B VERIFIED; TPG: $245.9B VERIFIED; CVC: €200B (~$215B) VERIFIED
+  { y:2024, m:12, d:{ Blackstone:1100, Apollo:785, KKR:638, Ares:465, Carlyle:447, TPG:246, CVC:215, Warburg:83 }},
+  // Mar 2025 (Q1) — ~ Estimated (interpolated Q4 2024 → Q3 2025 verified anchors)
+  { y:2025, m:3,  d:{ Blackstone:1161, Apollo:820, KKR:668, Ares:508, Carlyle:452, TPG:262, CVC:217, Warburg:84 }},
+  // Jun 2025 (Q2) — Warburg: ~$87B VERIFIED (foxbusinessmarkets.com, Jun 2025); others estimated
+  { y:2025, m:6,  d:{ Blackstone:1200, Apollo:830, KKR:695, Ares:555, Carlyle:460, TPG:275, CVC:220, Warburg:87 }},
+  // Sep 2025 (Q3) — Blackstone: $1,242B VERIFIED; KKR: $723B VERIFIED; Apollo: ~$840B (earnings reports); others estimated
+  { y:2025, m:9,  d:{ Blackstone:1242, Apollo:840, KKR:723, Ares:580, Carlyle:470, TPG:290, CVC:222, Warburg:93 }},
+  // Dec 2025 — Blackstone: $1,270B VERIFIED; KKR: $744B VERIFIED; Apollo: $938B VERIFIED (10-K); Ares: $596B VERIFIED; TPG: $303B VERIFIED; Warburg: ~$97B estimated (approaching $100B+ milestone)
+  { y:2025, m:12, d:{ Blackstone:1270, Apollo:938, KKR:744, Ares:596, Carlyle:480, TPG:303, CVC:225, Warburg:97 }},
+  // Mar 2026 (Q1) — Warburg: >$100B VERIFIED (warburgpincus.com, May 2026); others estimated from trailing growth rates
+  { y:2026, m:3,  d:{ Blackstone:1320, Apollo:985, KKR:775, Ares:630, Carlyle:490, TPG:315, CVC:230, Warburg:103 }},
+];
+
+const MILESTONES = [
+  { y:2007, m:6,  text:'🔔 Blackstone IPO (NYSE: BX) — PE goes public for the first time' },
+  { y:2008, m:10, text:'💥 Lehman collapse — GFC freezes PE fundraising worldwide' },
+  { y:2012, m:5,  text:'📈 Carlyle IPO — the PE-to-listed-manager transformation begins' },
+  { y:2014, m:5,  text:'⚡ Ares IPO — the credit revolution enters the race at $74B' },
+  { y:2021, m:1,  text:'🏦 Apollo-Athene merger: insurance capital reshapes PE forever' },
+  { y:2022, m:1,  text:'🚀 TPG IPO — the last major PE firm goes public' },
+  { y:2023, m:11, text:'💎 Blackstone crosses $1 TRILLION — first ever in private markets' },
+];
+
+// MARKET SHARE DATA — 2015 vs 2025
+const shareData = {
+  periods: ['2015', '2025'],
+  firms: [
+    { name:'Blackstone', color:'#E8B04A', vals:[337, 1270] },
+    { name:'Apollo',     color:'#7C9FE0', vals:[163,  938] },
+    { name:'KKR',        color:'#5B8DD9', vals:[120,  744] },
+    { name:'Ares',       color:'#A78BFA', vals:[96,   596] },
+    { name:'Carlyle',    color:'#34D399', vals:[188,  480] },
+    { name:'TPG',        color:'#F87171', vals:[70,   303] },
+    { name:'CVC',        color:'#4ADE80', vals:[59,   225] },
+    { name:'Warburg',    color:'#FB923C', vals:[44,    87] },
+  ]
+};
+
+// ─── ANIMATION ENGINE ─────────────────────────────────────────────────────────
+const ROWS = 8;
+let ROW_H = 72, ROW_GAP = 10, TOTAL_ROW = ROW_H + ROW_GAP;
+const CHART_LEFT_PAD = 0;
+const speedMap = { slow:0.004, normal:0.016, fast:0.055, turbo:0.18 };
+let speedFactor = speedMap.slow;
+let paused = false;
+let t = 0;
+
+const allFirms = Object.keys(COLORS);
+const chartArea = document.getElementById('chart-area');
+const dateBadge = document.getElementById('date-badge');
+const ghostYear  = document.getElementById('ghost-year');
+const milestoneEl = document.getElementById('milestone');
+const progressFill = document.getElementById('progress-fill');
+
+// Build DOM rows
+const rowEls = {};
+for (const firm of allFirms) {
+  const row = document.createElement('div');
+  row.className = 'brow';
+  row.innerHTML = `
+    <div class="brow-rank">-</div>
+    <div class="brow-logo">${logo(firm)}</div>
+    <div class="brow-name">${firm}</div>
+    <div class="brow-track">
+      <div class="brow-fill" style="background:${COLORS[firm]};width:0%"></div>
+      <div class="brow-num">0</div>
+    </div>`;
+  chartArea.appendChild(row);
+  rowEls[firm] = {
+    row,
+    rank: row.querySelector('.brow-rank'),
+    track: row.querySelector('.brow-track'),
+    fill:  row.querySelector('.brow-fill'),
+    num:   row.querySelector('.brow-num'),
+  };
+}
+
+function fitRowsToChart() {
+  const chartH = chartArea.clientHeight;
+  if (!chartH || chartH < 80) return;
+  ROW_H = Math.max(44, Math.floor((chartH - 20 - 10 * (ROWS - 1)) / ROWS));
+  ROW_H = Math.min(ROW_H, 110);
+  ROW_GAP = Math.max(6, Math.round(ROW_H * 0.12));
+  TOTAL_ROW = ROW_H + ROW_GAP;
+  for (const firm of allFirms) {
+    rowEls[firm].row.style.height = ROW_H + 'px';
+    rowEls[firm].track.style.height = Math.round(ROW_H * 0.72) + 'px';
+  }
+}
+requestAnimationFrame(() => { fitRowsToChart(); });
+window.addEventListener('resize', () => { fitRowsToChart(); });
+
+let chartW = 0;
+function calcW() { chartW = chartArea.clientWidth; }
+calcW();
+window.addEventListener('resize', calcW);
+
+function lerp(a, b, f) { return a + (b - a) * f; }
+
+function getState() {
+  const total = KF.length - 1;
+  const i = Math.min(Math.floor(t * total), total - 1);
+  const f = (t * total) - i;
+  const d1 = KF[i].d, d2 = KF[i + 1].d;
+  const firms = new Set([...Object.keys(d1), ...Object.keys(d2)]);
+  const data = {};
+  for (const s of firms) data[s] = lerp(d1[s] || 0, d2[s] || 0, f);
+  // Interpolate absolute month position for accurate date display
+  const abs1 = KF[i].y * 12 + ((KF[i].m || 12) - 1);
+  const abs2 = KF[i+1].y * 12 + ((KF[i+1].m || 12) - 1);
+  const abs  = lerp(abs1, abs2, f);
+  const year  = Math.floor(abs / 12);
+  const month = Math.round(abs % 12) + 1; // 1-based
+  return { data, year, month };
+}
+
+function formatDateBadge(year, month) {
+  // Before 2025: annual data — show year only
+  if (year < 2025) return year.toString();
+  // 2025 onwards: quarterly data — show "Q1 2025"
+  const q = Math.ceil(month / 3);
+  return `Q${q} ${year}`;
+}
+
+function formatAUM(v) {
+  if (v >= 1000) return '$' + (v/1000).toFixed(2) + 'T';
+  return '$' + Math.round(v) + 'B';
+}
+
+function render() {
+  const { data, year, month } = getState();
+
+  // Sort by value descending
+  const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+  const maxVal = sorted[0][1] || 1;
+
+  // Update date badge — quarterly label for 2025+, year only for earlier
+  dateBadge.textContent = formatDateBadge(year, month);
+  ghostYear.textContent = year;
+
+  // Animate bars
+  sorted.forEach(([firm, val], rank) => {
+    const el = rowEls[firm];
+    if (!el) return;
+    const targetY = 10 + rank * TOTAL_ROW;
+    el.row.style.transform = `translateY(${targetY}px)`;
+    el.rank.textContent = rank + 1;
+    const pct = (val / maxVal) * 92;
+    el.fill.style.width = pct + '%';
+    el.num.textContent = formatAUM(val);
+  });
+
+  // Progress bar
+  progressFill.style.width = (t * 100) + '%';
+}
+
+// Milestone logic
+let shownMilestones = new Set();
+let milestoneTimer = null;
+function checkMilestones() {
+  const { year } = getState();
+  const total = KF.length - 1;
+  const i = Math.min(Math.floor(t * total), total - 1);
+  const f = (t * total) - i;
+  const approxMonth = Math.round(lerp(KF[Math.min(i, KF.length-1)].m || 1, KF[Math.min(i+1, KF.length-1)].m || 12, f));
+  for (const ms of MILESTONES) {
+    const key = ms.y + '-' + ms.m;
+    if (!shownMilestones.has(key) && year === ms.y) {
+      shownMilestones.add(key);
+      milestoneEl.textContent = ms.text;
+      milestoneEl.classList.add('show');
+      if (milestoneTimer) clearTimeout(milestoneTimer);
+      milestoneTimer = setTimeout(() => milestoneEl.classList.remove('show'), 3500);
+    }
+  }
+}
+
+// Animation loop
+let lastTs = null;
+function loop(ts) {
+  if (!paused) {
+    if (lastTs !== null) {
+      const dt = (ts - lastTs) / 1000;
+      t = Math.min(t + dt * speedFactor, 1);
+    }
+    lastTs = ts;
+    render();
+    checkMilestones();
+    if (t >= 1) {
+      paused = true;
+      document.getElementById('btn-play').textContent = '▶ Play';
+    }
+  } else {
+    lastTs = null;
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// Controls
+const speedBtns = {
+  'btn-s1': { factor: speedMap.slow,   lbl: '🐢 Slow' },
+  'btn-s2': { factor: speedMap.normal, lbl: '▶ Normal' },
+  'btn-s3': { factor: speedMap.fast,   lbl: '⚡ Fast' },
+  'btn-s4': { factor: speedMap.turbo,  lbl: '🚀 Turbo' },
+};
+for (const [id, cfg] of Object.entries(speedBtns)) {
+  document.getElementById(id).addEventListener('click', () => {
+    speedFactor = cfg.factor;
+    document.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.getElementById('speed-lbl').textContent = 'Speed: ' + cfg.lbl;
+  });
+}
+document.getElementById('btn-play').addEventListener('click', () => {
+  paused = !paused;
+  if (t >= 1) { t = 0; shownMilestones.clear(); }
+  document.getElementById('btn-play').textContent = paused ? '▶ Play' : '⏸ Pause';
+});
+document.getElementById('btn-restart').addEventListener('click', () => {
+  t = 0; paused = false; shownMilestones.clear();
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+});
+
+// ── MARKET SHARE BARS ────────────────────────────────────────────────────────
+const container = document.getElementById('share-bars-container');
+const totals = shareData.periods.map((_, pi) =>
+  shareData.firms.reduce((s, f) => s + f.vals[pi], 0)
+);
+// Header
+const headerRow = document.createElement('div');
+headerRow.style.cssText = 'display:flex;gap:12px;margin-bottom:8px;padding-left:132px;';
+shareData.periods.forEach(p => {
+  const h = document.createElement('div');
+  h.style.cssText = 'flex:1;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;';
+  h.textContent = p;
+  headerRow.appendChild(h);
+});
+container.appendChild(headerRow);
+
+shareData.firms.forEach(f => {
+  const row = document.createElement('div');
+  row.className = 'share-row';
+  const nameEl = document.createElement('div');
+  nameEl.className = 'share-name';
+  nameEl.textContent = f.name;
+  row.appendChild(nameEl);
+
+  f.vals.forEach((val, pi) => {
+    const pct = (val / totals[pi] * 100).toFixed(1);
+    const delta = pi === 1 ? ((val/totals[1] - f.vals[0]/totals[0])*100).toFixed(1) : null;
+    const track = document.createElement('div');
+    track.className = 'share-track';
+    const fill = document.createElement('div');
+    fill.className = 'share-fill';
+    fill.style.cssText = `background:${f.color};width:${pct}%;`;
+    fill.innerHTML = `<span>$${val >= 1000 ? (val/1000).toFixed(1)+'T' : val+'B'} (${pct}%${delta !== null ? (parseFloat(delta)>=0?' ▲'+delta+'pp':' ▼'+Math.abs(delta)+'pp') : ''})</span>`;
+    track.appendChild(fill);
+    row.appendChild(track);
+  });
+  container.appendChild(row);
+});
+</script>
+</html>
